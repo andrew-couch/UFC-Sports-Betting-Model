@@ -1,7 +1,9 @@
 library(rvest)
 library(tidyverse)
 
-UFC <- "http://ufcstats.com/statistics/events/completed?page=all"
+# Scraping Functions ------------------------------------------------------
+
+
 
 scrape_cards <- function(link){
   
@@ -25,42 +27,72 @@ scrape_fights <- function(link){
 }
 
 
+scrape_fight_summary_data <- function(link){
+  
+  table_df <- link %>% 
+    read_html() %>%
+    html_nodes("table")
+  
+  
+  table_df[1] %>% 
+    html_table(trim = TRUE, fill = TRUE) %>% 
+    do.call("rbind", .) %>% 
+    as_tibble() %>% 
+    rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
+           "TD" = 6, "TD_Perc" = 7, "Sub_Attempts" = 8, "Pass" = 9, "Rev" = 10) %>% 
+    gather() %>% 
+    separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
+    mutate_all(~str_replace_all(.x, "\n", "")) %>% 
+    mutate_all(str_trim) %>% 
+    pivot_wider(names_from = key, values_from = c(fighter_1, fighter_2)) 
+  
+  
+}
+
+
+
+scrape_round_data <- function(link){
+  
+  table_df <- link %>% 
+    read_html() %>%
+    html_nodes("table")
+  
+  
+  table_df[2] %>% 
+    html_table(trim = TRUE, fill = TRUE) %>% 
+    do.call("rbind", .) %>% 
+    as_tibble(.name_repair = "unique") %>% 
+    rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
+           "TD" = 6, "TD_Percent" = 7, "Sub_Attempts_Perc" = 8, "Pass" = 9, "Rev" = 10) %>% 
+    gather() %>% 
+    separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
+    mutate_all(~str_replace_all(.x, "\n", " ")) %>% 
+    mutate_all(str_trim) %>% 
+    pivot_wider(names_from = key, values_from = c(fighter_1, fighter_2)) %>% 
+    unnest() %>% 
+    mutate(round = row_number())
+  
+}
+
+
+
+# Testing Functions -------------------------------------------------------
+
+
+
 link <- "http://ufcstats.com/fight-details/3bdacc82209b33f5"
 
 link <- read_html(link)
 table_df <- link %>% html_nodes("table") 
 
 
-# Tidy format
-table_df[1] %>% 
-  html_table(trim = TRUE, fill = TRUE) %>% 
-  do.call("rbind", .) %>% 
-  as_tibble() %>% 
-  rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
-         "TD" = 6, "TD_Perc" = 7, "Sub_Attempts" = 8, "Pass" = 9, "Rev" = 10) %>% 
-  gather() %>% 
-  separate(value, into = c("var_1", "var_2"), sep = "  ", extra = "merge") %>% 
-  mutate_all(~str_replace_all(.x, "\n", "")) %>% 
-  mutate_all(str_trim) %>% 
-  pivot_longer(cols = c(var_1, var_2)) %>% 
-  pivot_wider(names_from = key, values_from = value)
 
 
-# Head to head format
-table_df[1] %>% 
-  html_table(trim = TRUE, fill = TRUE) %>% 
-  do.call("rbind", .) %>% 
-  as_tibble() %>% 
-  rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
-         "TD" = 6, "TD_Perc" = 7, "Sub_Attempts" = 8, "Pass" = 9, "Rev" = 10) %>% 
-  gather() %>% 
-  separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
-  mutate_all(~str_replace_all(.x, "\n", "")) %>% 
-  mutate_all(str_trim) %>% 
-  pivot_wider(names_from = key, values_from = c(fighter_1, fighter_2)) 
-  
 
-# Manual way 
+# Fight Summary Data ------------------------------------------------------
+
+
+# Fight Manual way 
 table_df[1] %>% 
   html_table(trim = TRUE, fill = TRUE) %>% 
   do.call("rbind", .) %>% 
@@ -79,7 +111,43 @@ table_df[1] %>%
   separate(Rev, into = c("Rev_1", "Rev_2"), sep = "  ", extra = "merge") %>% 
   mutate_all(str_trim)
 
-# Manual way
+
+# Fight Tidy format
+table_df[1] %>% 
+  html_table(trim = TRUE, fill = TRUE) %>% 
+  do.call("rbind", .) %>% 
+  as_tibble() %>% 
+  rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
+         "TD" = 6, "TD_Perc" = 7, "Sub_Attempts" = 8, "Pass" = 9, "Rev" = 10) %>% 
+  gather() %>% 
+  separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
+  mutate_all(~str_replace_all(.x, "\n", "")) %>% 
+  mutate_all(str_trim) %>% 
+  pivot_longer(cols = c(fighter_1, fighter_2)) %>% 
+  pivot_wider(names_from = key, values_from = value)
+
+
+# Fight Head to head format
+table_df[1] %>% 
+  html_table(trim = TRUE, fill = TRUE) %>% 
+  do.call("rbind", .) %>% 
+  as_tibble() %>% 
+  rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
+         "TD" = 6, "TD_Perc" = 7, "Sub_Attempts" = 8, "Pass" = 9, "Rev" = 10) %>% 
+  gather() %>% 
+  separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
+  mutate_all(~str_replace_all(.x, "\n", "")) %>% 
+  mutate_all(str_trim) %>% 
+  pivot_wider(names_from = key, values_from = c(fighter_1, fighter_2)) 
+  
+
+
+
+
+# Round-by-Round Data -----------------------------------------------------
+
+
+# Round Manual way
 table_df[2] %>% 
   html_table(trim = TRUE, fill = TRUE) %>% 
   do.call("rbind", .) %>% 
@@ -99,6 +167,23 @@ table_df[2] %>%
   separate(Total_Strikes, into = c("Total_Strikes_1", "Total_Strikes_2"), sep = "  ", extra = "merge") %>% 
   separate(TD, into = c("TD_1", "TD_2"), sep = "  ", extra = "merge")
 
+
+# Round Tidy Format
+table_df[2] %>% 
+  html_table(trim = TRUE, fill = TRUE) %>% 
+  do.call("rbind", .) %>% 
+  as_tibble(.name_repair = "unique") %>% 
+  rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
+         "TD" = 6, "TD_Percent" = 7, "Sub_Attempts_Perc" = 8, "Pass" = 9, "Rev" = 10) %>% 
+  gather() %>% 
+  separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
+  mutate_all(~str_replace_all(.x, "\n", " ")) %>% 
+  mutate_all(str_trim) %>% 
+  pivot_longer(cols = c(fighter_1, fighter_2)) %>% 
+  pivot_wider(names_from = key, values_from = value) %>% 
+  unnest()
+
+
 # Round Head to Head format 
 table_df[2] %>% 
   html_table(trim = TRUE, fill = TRUE) %>% 
@@ -115,17 +200,11 @@ table_df[2] %>%
   mutate(round = row_number())
 
 
-# Round Tidy Format
-table_df[2] %>% 
-  html_table(trim = TRUE, fill = TRUE) %>% 
-  do.call("rbind", .) %>% 
-  as_tibble(.name_repair = "unique") %>% 
-  rename("Fighter" = 1, "KD" = 2, "Sig_Strike" = 3, "Sig_Strike_Percent" = 4, "Total_Strikes" = 5, 
-         "TD" = 6, "TD_Percent" = 7, "Sub_Attempts_Perc" = 8, "Pass" = 9, "Rev" = 10) %>% 
-  gather() %>% 
-  separate(value, into = c("fighter_1", "fighter_2"), sep = "  ", extra = "merge") %>% 
-  mutate_all(~str_replace_all(.x, "\n", " ")) %>% 
-  mutate_all(str_trim) %>% 
-  pivot_longer(cols = c(fighter_1, fighter_2)) %>% 
-  pivot_wider(names_from = key, values_from = value) %>% 
-  unnest()
+
+# Data Scraping -----------------------------------------------------------
+
+
+
+UFC <- "http://ufcstats.com/statistics/events/completed?page=all"
+Cards <- scrape_cards(UFC)
+Fights <- Cards %>% mutate(fight_links = map(links, scrape_fights))
