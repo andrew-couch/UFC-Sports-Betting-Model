@@ -435,3 +435,13 @@ pb <- progress_bar$new(total = nrow(UFC),
 UFC_Data <- UFC %>% mutate(fight_data = map(fights, safely(scrape_fight_summary_data)))
 
 saveRDS(UFC_Data, "UFC_Data.rds")
+
+UFC_Data %>% 
+  unnest(fight_data) %>% 
+  filter(row_number() %% 2 != 0) %>% 
+  unnest(fight_data) %>% 
+  write_csv("fight_data_raw.csv")
+
+
+
+
