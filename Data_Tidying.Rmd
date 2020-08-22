@@ -81,26 +81,67 @@ df <- df %>%
 ```{r}
 
 # Fighter 1 data 
-df %>% 
-  select(-fighter_2_fighter) %>% 
-  rename_all(.funs = ~str_replace(.x, "fighter_1_", ""))
-  
+fighter_1 <- df %>% 
+  select(-fighter_2_fighter, -referee, -fighter_2_res) %>% 
+  rename_all(.funs = ~str_replace(.x, "fighter_1_", "")) %>% 
+  # Create defensive metrics 
+  mutate("sig_strikes_avoided" = fighter_2_sig_strike_attempts - fighter_2_sig_strike_landed,
+         "tds_defended" = fighter_2_td_attempts - fighter_2_td_landed,
+         "strikes_avoided" = fighter_2_strike_attempts - fighter_2_strike_landed) %>% 
+  # Create damage metrics 
+  rename("kds_received" = fighter_2_kd,
+         "sig_strikes_received" = fighter_2_sig_strike_landed,
+         "strikes_received" = fighter_2_strike_landed,
+         "tds_received" = fighter_2_td_landed) %>% 
+  mutate(strike_percent = strike_landed / strike_attempts,
+         sig_reg_mixture = sig_strike_attempts / strike_attempts,
+         sig_reg_percent = (sig_strike_landed + strike_landed) / (sig_strike_attempts + strike_attempts)) %>% 
+  # Remove unnecessary columns
+  select(-fighter_2_sig_strike_attempts, 
+         -fighter_2_sig_strike_percent,
+         -fighter_2_strike_attempts,
+         -fighter_2_td_attempts,
+         -fighter_2_td_percent,
+         -fighter_2_sub_attempts,
+         -fighter_2_pass,
+         -fighter_2_rev) %>% 
+  # Sort the columns
+  select(sort(current_vars())) 
+
+fighter_2 <- df %>% 
+  select(-fighter_1_fighter, -referee, -fighter_1_res) %>% 
+  rename_all(.funs = ~str_replace(.x, "fighter_2_", "")) %>% 
+  # Create defensive metrics 
+  mutate("sig_strikes_avoided" = fighter_1_sig_strike_attempts - fighter_1_sig_strike_landed,
+         "tds_defended" = fighter_1_td_attempts - fighter_1_td_landed,
+         "strikes_avoided" = fighter_1_strike_attempts - fighter_1_strike_landed) %>% 
+  # Create damage metrics 
+  rename("kds_received" = fighter_1_kd,
+         "sig_strikes_received" = fighter_1_sig_strike_landed,
+         "strikes_received" = fighter_1_strike_landed,
+         "tds_received" = fighter_1_td_landed) %>% 
+  mutate(strike_percent = strike_landed / strike_attempts,
+         sig_reg_mixture = sig_strike_attempts / strike_attempts,
+         sig_reg_percent = (sig_strike_landed + strike_landed) / (sig_strike_attempts + strike_attempts)) %>% 
+  # Remove unnecessary columns
+  select(-fighter_1_sig_strike_attempts, 
+         -fighter_1_sig_strike_percent,
+         -fighter_1_strike_attempts,
+         -fighter_1_td_attempts,
+         -fighter_1_td_percent,
+         -fighter_1_sub_attempts,
+         -fighter_1_pass,
+         -fighter_1_rev) %>% 
+  # Sort the columns 
+  select(sort(current_vars()))
 
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+```{r}
+# Combine fighter 1 and fighter 2 data 
+fight_data <- bind_rows(fighter_1, fighter_2)
+```
 
 
 
