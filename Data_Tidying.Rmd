@@ -141,6 +141,8 @@ fighter_2 <- df %>%
 ```{r}
 # Combine fighter 1 and fighter 2 data 
 fight_data <- bind_rows(fighter_1, fighter_2)
+
+write_csv(fight_data, "fight_data.csv")
 ```
 
 
