@@ -1,0 +1,84 @@
+---
+title: "Feature Engineering"
+author: "Andrew Couch"
+date: "8/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+df <- read_csv("fight_data.csv")
+```
+
+```{r}
+lag_sum <- function(.x){
+  
+  lag(cumsum(.x), default = 0)
+  
+}
+
+lag_mean <- function(.x){
+  
+  lag(cummean(.x), default = 0)
+  
+}
+
+
+df %>% 
+  mutate(res = if_else(res == "W", 1, 0)) %>% 
+  group_by(fighter, weight_class) %>% 
+  arrange(fighter, date) %>% 
+  # Create fight record features 
+  
+  # Create loss and win type feature
+  
+  # Count the outcome of the fight for each fighter
+  mutate(win_type = 1) %>% 
+  mutate(loss_type = if_else(res == 0, 1, 0),
+         loss_cat = method) %>% 
+  mutate(win_type = win_type * res) %>% 
+  # Convert outcome to a one-hot-encoded win and loss features 
+  pivot_wider(names_from = method, names_prefix = "win_", 
+              values_from = win_type, values_fill = list(win_type = 0)) %>% 
+  pivot_wider(names_from = "loss_cat", names_prefix = "loss_", 
+              values_from = loss_type, values_fill = list(loss_type = 0)) %>% 
+  rename_all(.funs = ~str_replace_all(.x, " ", "_") %>% tolower()) %>% 
+  
+  # Create the accumulated lagged loss and win features 
+  mutate_at(vars(contains("win_")), lag_sum) %>% 
+  mutate_at(vars(contains("loss_")), lag_sum) %>% 
+
+  # Create total losses and total wins 
+  mutate(num_fights = row_number()-1) %>% 
+  mutate(total_wins =  lag_sum(res)) %>% 
+  mutate(total_losses = num_fights - total_wins) %>% 
+  mutate(total_rounds = lag_sum(rounds)) %>% 
+  
+  # Create damage features 
+  mutate(total_strikes_absorbed =  lag_sum(strikes_received)) %>% 
+  mutate(total_kds_received = lag_sum(tds_received)) %>% 
+  mutate(total_sig_strikes_absorbed =  lag_sum(sig_strikes_received)) %>% 
+  
+  # Remove and reformatting column features
+  select(-round_finished, -rounds, -time) %>%
+  select(res, everything()) %>% 
+  
+  # Create average features 
+  mutate_at(vars(kd:tds_received), lag_mean) %>% 
+  rename_at(vars(kd:tds_received), .funs = ~paste0("avg_", .x)) %>% 
+  
+  # Final reformatting 
+  ungroup() %>% 
+  select(sort(current_vars())) %>% 
+  select(date, fight_pk, fighter, res, everything())
+
+
+
+```
+
