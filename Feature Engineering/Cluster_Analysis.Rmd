@@ -1,0 +1,105 @@
+---
+title: "Clutster Analysis"
+author: "Andrew Couch"
+date: "8/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(Rtsne)
+df <- read_csv("Data/fighter_table.csv")
+```
+
+```{r}
+pca_df <- df %>% 
+  select(avg_kd:avg_tds_received) %>% 
+  prcomp(center = TRUE)
+
+pca_df$x %>% 
+  as_tibble() %>% 
+  bind_cols(df %>% select(fighter)) %>% 
+  ggplot(aes(x = PC1, y = PC2, label = fighter)) + 
+  geom_text(alpa = .1)
+```
+
+
+```{r}
+
+tsne_labels <- df %>% 
+  select(avg_kd:avg_tds_received) %>% 
+  duplicated() %>% 
+  bind_cols("duplicated" = ., df %>% select(fighter, avg_kd:avg_tds_received)) %>% 
+  filter(duplicated == FALSE) %>% 
+  select(fighter)
+
+tsne_data <- df %>% 
+  select(avg_kd:avg_tds_received) %>% 
+  duplicated() %>% 
+  bind_cols("duplicated" = ., df %>% select(fighter, avg_kd:avg_tds_received)) %>% 
+  filter(duplicated == FALSE) %>% 
+  select(avg_kd:avg_tds_received) %>% 
+  as.matrix()
+
+tsne_df <- Rtsne(tsne_data, perplexity = 30, theta = .1)
+
+tsne_df$Y %>% 
+  as_tibble() %>% 
+  bind_cols(tsne_labels) %>% 
+  ggplot(aes(x = V1, y = V2)) + 
+  geom_point() 
+```
+
+```{r}
+hclust_df <- hclust(dist(df %>% 
+                           select(avg_kd:avg_tds_received) %>% 
+                           scale()),
+                    method = "ward.D")
+
+
+
+hclust_df$merge %>% 
+  as_tibble() %>% 
+  ggplot(aes(x = V1, y = V2)) + 
+  geom_point()
+```
+
+```{r}
+
+kmeans_data <- df %>% 
+  select(-fight_pk, -fighter, -res, -weight_class) %>% 
+  select(avg_kd:avg_tds_received) %>% 
+  scale()
+
+
+tune_kmeans <- function(k){
+  
+  kmeans(kmeans_data, centers = k, nstart = 25)$tot.withinss
+  
+}
+
+
+kmeans_res <- tibble(clusters = 1:20) %>% 
+  mutate(sos = map(clusters, tune_kmeans)) %>% 
+  unnest(sos)
+
+kmeans_res %>% 
+  ggplot(aes(x = clusters, y = sos)) + 
+  geom_line() + 
+  geom_point()
+
+
+kmeans_df <- kmeans(kmeans_data, center = 10, nstart = 25)
+
+kmeans_df$centers %>% 
+  as_tibble(rownames = "cluster") %>% 
+  pivot_longer(-cluster) %>% 
+  ggplot(aes(x = name, y = value, color = cluster, label = cluster)) + 
+  geom_label() + 
+  coord_flip()
+```
+
