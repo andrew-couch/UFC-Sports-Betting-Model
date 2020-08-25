@@ -1,0 +1,73 @@
+---
+title: "ELO Feature"
+author: "Andrew Couch"
+date: "8/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(elo)
+library(plotly)
+
+df <- read.csv("fighter_table.csv")
+
+year_df <- read.csv("fight_data.csv")
+
+year_df <- year_df %>% 
+  select(date, fight_pk) %>% 
+  distinct() %>% 
+  mutate(year = str_sub(date, start = 1, end = 4)) %>% 
+  select(-date)
+```
+
+```{r}
+elo_df <- df %>% 
+  select(fight_pk, weight_class, fighter, res) %>% 
+  inner_join(df %>% select(fight_pk, opponent = fighter)) %>% 
+  filter(fighter != opponent) %>% 
+  select(fight_pk, weight_class, fighter, opponent, res) %>% 
+  arrange(fight_pk) %>% 
+  group_by(fight_pk) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  inner_join(year_df, by = "fight_pk")
+
+```
+
+```{r}
+
+
+
+k_tune <- function(k, v_regress){
+  
+  elo_model <- elo.run(res~fighter + opponent + regress(year, 1500, v_regress), data = elo_df, k = k)
+
+  rank.teams(elo_model) %>% 
+    as_tibble(rownames = "fighter") %>% 
+    arrange(value) %>% 
+    slice(1:10)
+}
+
+k_res <- crossing(k = seq(from = 1, to = 50, by = 1),
+         v_regress = seq(from = .1, to = .9, by = .1)) %>% 
+  mutate(rankings = map2(k, v_regress, k_tune)) %>% 
+  unnest() 
+
+k_res %>% 
+  count(value, fighter) %>% 
+  arrange(value, desc(n)) %>% 
+  ggplot(aes(x = value, y = n, fill = fighter)) + 
+  geom_col(position = "dodge") + 
+  theme(legend.position = "top")
+```
+```{r}
+k_res %>% 
+  plot_ly(x = ~k, y = ~v_regress, z = ~value, color = ~fighter) %>% 
+  add_markers()
+```
+

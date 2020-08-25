@@ -65,8 +65,14 @@ fighter_table <- df %>%
   mutate(total_kds_received = lag_sum(tds_received)) %>% 
   mutate(total_sig_strikes_absorbed =  lag_sum(sig_strikes_received)) %>% 
   
+  # Create differential features 
+  mutate(strike_differential = lag(strike_landed, default = 0)-lag(strikes_received, default = 0)) %>% 
+  mutate(avg_strike_differential = lag_mean(strike_differential)) %>% 
+  mutate(sig_strike_differential = lag(sig_strike_landed, default = 0)-lag(sig_strikes_received, default = 0)) %>% 
+  mutate(avg_sig_strike_differential = lag_mean(sig_strike_differential)) %>% 
+  
   # Remove and reformatting column features
-  select(-round_finished, -rounds, -time, -date) %>%
+  select(-round_finished, -rounds, -time, -date, -strike_differential, -sig_strike_differential) %>%
   select(res, everything()) %>% 
   
   # Create average features 
@@ -99,8 +105,8 @@ fight_table <- inner_join(fighter_table, rename_all(fighter_table, .funs = ~past
 
 ```{r}
 # Export tables 
-write_csv(fight_table, "Data/fights.csv")
-write_csv(fighter_table, "Data/fighter_table.csv")
+write_csv(fight_table, "fights.csv")
+write_csv(fighter_table, "fighter_table.csv")
 ```
 
 
