@@ -1,0 +1,119 @@
+---
+title: "Feature Engineering"
+author: "Andrew Couch"
+date: "8/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "E:/School/R Work/UFC-Sports-Betting-Model")
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+df <- read_csv("Data/fight_data.csv")
+```
+
+```{r}
+lag_sum <- function(.x){
+  
+  lag(cumsum(.x), default = 0)
+  
+}
+
+lag_mean <- function(.x){
+  
+  if_else(is.nan(lag(cummean(.x), default = 0)) == TRUE, 0, lag(cummean(.x), default = 0)) 
+  
+}
+
+
+fighter_table <- df %>% 
+  mutate(res = if_else(res == "W", 1, 0)) %>% 
+  group_by(fighter, weight_class) %>% 
+  arrange(fighter, date) %>% 
+  # Create fight record features 
+  
+  # Create loss and win type feature
+  # Count the outcome of the fight for each fighter
+  mutate(win_type = 1) %>% 
+  mutate(loss_type = if_else(res == 0, 1, 0),
+         loss_cat = method) %>% 
+  mutate(win_type = win_type * res) %>% 
+  # Convert outcome to a one-hot-encoded win and loss features 
+  pivot_wider(names_from = method, names_prefix = "win_", 
+              values_from = win_type, values_fill = list(win_type = 0)) %>% 
+  pivot_wider(names_from = "loss_cat", names_prefix = "loss_", 
+              values_from = loss_type, values_fill = list(loss_type = 0)) %>% 
+  rename_all(.funs = ~str_replace_all(.x, " ", "_") %>% tolower()) %>% 
+  
+  # Create the accumulated lagged loss and win features 
+  mutate_at(vars(contains("win_")), lag_sum) %>% 
+  mutate_at(vars(contains("loss_")), lag_sum) %>% 
+
+  # Create total losses and total wins 
+  mutate(num_fights = row_number()-1) %>% 
+  mutate(total_wins =  lag_sum(res)) %>% 
+  mutate(total_losses = num_fights - total_wins) %>% 
+  mutate(total_rounds = lag_sum(rounds)) %>%
+  
+  # Create damage features 
+  mutate(total_strikes_absorbed =  lag_sum(strikes_received)) %>% 
+  mutate(total_kds_received = lag_sum(tds_received)) %>% 
+  mutate(total_sig_strikes_absorbed =  lag_sum(sig_strikes_received)) %>% 
+  
+  # Create differential features 
+  mutate(strike_differential = lag(strike_landed, default = 0)-lag(strikes_received, default = 0)) %>% 
+  mutate(avg_strike_differential = lag_mean(strike_differential)) %>% 
+  mutate(sig_strike_differential = lag(sig_strike_landed, default = 0)-lag(sig_strikes_received, default = 0)) %>% 
+  mutate(avg_sig_strike_differential = lag_mean(sig_strike_differential)) %>% 
+
+  # Create days since last fight feature
+  arrange(date) %>% 
+  mutate(last_fight_date = lag(date)) %>% 
+  mutate(days_since_last_fight = if_else(is.na(last_fight_date), 0, difftime(date, last_fight_date, units = "days") %>% as.numeric())) %>% 
+  filter(days_since_last_fight == 0) %>% 
+
+  # Remove and reformatting column features
+  select(-round_finished, -rounds, -time, -date, -last_fight_date, -strike_differential, -sig_strike_differential) %>%
+  select(res, everything()) %>% 
+  
+  # Create average features 
+  mutate_at(vars(kd:tds_received), lag_mean) %>% 
+  rename_at(vars(kd:tds_received), .funs = ~paste0("avg_", .x)) %>% 
+  
+  # Final reformatting 
+  ungroup() %>% 
+  select(sort(current_vars())) %>% 
+  select(fight_pk, fighter, res, everything())
+
+```
+
+
+
+
+```{r}
+
+# Join fighter table and surrogate opponent table
+fight_table <- inner_join(fighter_table, rename_all(fighter_table, .funs = ~paste0("opp_", .x)), 
+            by = c("fight_pk" = "opp_fight_pk")) %>% 
+  # Remove any fights where fighter is fighting itself
+  filter(fighter != opp_fighter) %>% 
+  # Remove redundant data 
+  select(-weight_class, -opp_weight_class, -opp_res) %>% 
+  # Format the table 
+  select(fight_pk, fighter, opp_fighter, res, everything())
+
+```
+
+```{r}
+# Export tables 
+write_csv(fight_table, "Data/fights.csv")
+write_csv(fighter_table, "Data/fighter_table.csv")
+```
+
+
+
