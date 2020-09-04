@@ -113,7 +113,7 @@ top_fighters %>%
   geom_rug() + 
   facet_wrap(~name, scales = "free")
 ```
-
+# K analysis
 ```{r}
 # Use v_regress value of .5
 # Choose K values between 25 and 35
@@ -184,4 +184,48 @@ elo_history %>%
   theme(legend.position = "none")
 ```
 
+```{r}
+# Evaluate ELO history for every fighter 
+elo_history %>% 
+  filter(k %in% c(25, 30, 35)) %>% 
+  group_by(k) %>% 
+  mutate(pk = row_number()) %>% 
+  arrange(team, pk) %>% 
+  group_by(team, k) %>% 
+  mutate(fights = row_number()) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = fights, y = elo)) + 
+  geom_line(aes(group = team, color = as.factor(k)), alpha = .2) + 
+  geom_smooth() + 
+  facet_wrap(~k, scales = "fixed")
+```
+
+Higher K seems to be beneifical for veterans and overrates them.  
+Model will use a lower k of 25.  
+
+# Final ELO model
+```{r}
+df <- read_csv("Data/fighter_table.csv")
+
+final_elo_df <- df %>% 
+  select(fight_pk, weight_class, fighter, res) %>% 
+  inner_join(df %>% select(fight_pk, opponent = fighter)) %>% 
+  filter(fighter != opponent) %>% 
+  select(fight_pk, weight_class, fighter, opponent, res) %>% 
+  arrange(fight_pk) %>% 
+  group_by(fight_pk) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = c(fighter, opponent)) %>% 
+  group_by(value) %>% 
+  arrange(fight_pk) %>% 
+  mutate(fight_num = row_number()) %>% 
+  ungroup() %>% 
+  mutate(start_regress = if_else(fight_num >= 4, "Last Half", "First Half")) %>% 
+  select(-fight_num) %>% 
+  pivot_wider(names_from = name, values_from = value)
+
+final_elo_model <- elo.run(res~fighter + opponent + regress(start_regress, 1500, .5), data = elo_df, k = 25)
+
+```
 
