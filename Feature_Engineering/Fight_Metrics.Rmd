@@ -16,7 +16,7 @@ library(lubridate)
 
 df <- read_csv("Data/fight_data.csv")
 ```
-
+# Create Fight Metrics
 ```{r}
 lag_sum <- function(.x){
   
@@ -91,11 +91,47 @@ fighter_table <- df %>%
 
 ```
 
+# Create ELO Model
+```{r}
+library(elo)
 
+elo_model_data <- fighter_table %>% 
+  select(fight_pk, fighter, res) %>% 
+  left_join(fighter_table %>% select(fight_pk, opponent = fighter), by = "fight_pk") %>% 
+  group_by(fight_pk) %>% 
+  filter(fighter != opponent) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  arrange(fight_pk) 
+
+elo_model <- elo.run(res ~ fighter + opponent, data = elo_model_data, k = 25)
+
+elo_table <- bind_rows(
+  elo_model %>% 
+    as.data.frame() %>% 
+    as_tibble() %>% 
+    select(fighter = team.A, elo = elo.A) %>% 
+    bind_cols(elo_model_data %>% select(fight_pk)),
+  
+  elo_model %>% 
+    as.data.frame() %>% 
+    as_tibble() %>% 
+    select(fighter = team.B, elo = elo.B) %>% 
+    bind_cols(elo_model_data %>% select(fight_pk))
+) %>% 
+  arrange(fighter, fight_pk) %>% 
+  group_by(fighter) %>% 
+  mutate(elo_actual = lag(elo, n = 1, default = 1500)) %>% 
+  select(fighter, elo = elo_actual, fight_pk)
+  
+
+fighter_table <- fighter_table %>% 
+  left_join(elo_table, by = c("fight_pk", "fighter")) 
+
+```
 
 
 ```{r}
-
 # Join fighter table and surrogate opponent table
 fight_table <- inner_join(fighter_table, rename_all(fighter_table, .funs = ~paste0("opp_", .x)), 
             by = c("fight_pk" = "opp_fight_pk")) %>% 
@@ -104,8 +140,14 @@ fight_table <- inner_join(fighter_table, rename_all(fighter_table, .funs = ~past
   # Remove redundant data 
   select(-weight_class, -opp_weight_class, -opp_res) %>% 
   # Format the table 
-  select(fight_pk, fighter, opp_fighter, res, everything())
-
+  select(fight_pk, fighter, opp_fighter, res, everything()) %>% 
+  # Create differentials
+  mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
+         elo_dif = elo - opp_elo,
+         fight_dif = num_fights - opp_num_fights)
+  # Create fighter and opponent characteristics
+  
+fight_table
 ```
 
 ```{r}

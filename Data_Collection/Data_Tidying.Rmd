@@ -13,7 +13,7 @@ knitr::opts_knit$set(root.dir = "E:/School/R Work/UFC-Sports-Betting-Model")
 ```{r}
 library(tidyverse)
 
-df <- read_csv("Data/fight_data_raw.csv")
+df <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data_raw.csv")
 
 ```
 
