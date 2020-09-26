@@ -127,7 +127,6 @@ elo_table <- bind_rows(
 
 fighter_table <- fighter_table %>% 
   left_join(elo_table, by = c("fight_pk", "fighter")) 
-
 ```
 
 
@@ -144,16 +143,23 @@ fight_table <- inner_join(fighter_table, rename_all(fighter_table, .funs = ~past
   # Create differentials
   mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
          elo_dif = elo - opp_elo,
-         fight_dif = num_fights - opp_num_fights)
-  # Create fighter and opponent characteristics
-  
-fight_table
+         fight_dif = num_fights - opp_num_fights,
+         elo_prob = 1 / (1 + 10^((opp_elo - elo)/400))) %>% 
+  # Create fight metrics
+  mutate(strike_metric = log((avg_strike_landed + 1 / (avg_strikes_received + 2)))*`win_ko/tko`,
+         opp_strike_metric = log((opp_avg_strike_landed + 1 / (opp_avg_strikes_received + 2)))*`opp_win_ko/tko`,
+         strike_favor = if_else(strike_metric > opp_strike_metric, "favored", "unfavored")) %>%
+  mutate(submission_metric = log((avg_td_landed * (opp_loss_submission + 1) * (win_submission + 1)) + 1) + 
+           log((avg_tds_defended + 1) / (loss_submission + 2)),
+         opp_submission_metric = log((opp_avg_td_landed * (loss_submission + 1) * (opp_win_submission + 1)) + 1) + 
+           log((opp_avg_tds_defended + 1) / (opp_loss_submission + 2))) %>% 
+  mutate(sub_dif = submission_metric - opp_submission_metric)
 ```
 
 ```{r}
 # Export tables 
-write_csv(fight_table, "Data/fights.csv")
-write_csv(fighter_table, "Data/fighter_table.csv")
+write_csv(fight_table, "E:/School/R Work/UFC-Sports-Betting-Model/Data/fights.csv")
+write_csv(fighter_table, "E:/School/R Work/UFC-Sports-Betting-Model/Data/fighter_table.csv")
 ```
 
 
