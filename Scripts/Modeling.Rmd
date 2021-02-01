@@ -1,0 +1,387 @@
+---
+title: "Untitled"
+author: "Andrew Couch"
+date: "1/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(here)
+
+df <- read_csv(here("Data/fight_data.csv"))
+match_df <- read_csv(here("Data/fights.csv"))
+fighter_df <- read_csv(here("Data/fighter_table.csv"))
+```
+
+
+# Individual Component Data 
+```{r}
+target_components <- df %>% 
+  select(fight_pk, fighter, kd, 
+         sig_strike_attempts, sig_strike_landed,
+         strike_attempts, strike_landed,
+         sub_attempts, td_attempts, 
+         td_landed) %>% 
+  rename_at(vars(!matches("fight_pk|fighter")), ~paste0("target_", .x))
+
+
+ind_comp_df <- match_df %>% 
+  arrange(desc(fight_pk)) %>% 
+  select_at(vars(!matches("rev|opp_fighter|res|loss|win"))) %>% 
+  left_join(target_components, by = c("fight_pk", "fighter")) %>% 
+  select_at(vars(contains("target"), everything())) %>% 
+  select(fight_pk, fighter, everything()) %>% 
+  mutate(is_favored = as.factor(is_favored),
+         strike_favor = as.factor(strike_favor),
+         sub_favor = as.factor(sub_favor)) %>% 
+  mutate_if(is.numeric, ~replace_na(.x, 0))
+```
+
+# Differential Data
+```{r}
+dif_df <- target_components %>% 
+  pivot_longer(-c(fight_pk, fighter), values_to = "fighter_val") %>% 
+  left_join(target_components %>% 
+              rename(opponent = fighter) %>% 
+              pivot_longer(-c(fight_pk, opponent), values_to = "opponent_val"),
+            by = c("fight_pk", "name")) %>% 
+  filter(fighter != opponent) %>% 
+  mutate(dif = fighter_val - opponent_val) %>% 
+  select(fight_pk, fighter, name, dif) %>% 
+  pivot_wider(names_from = name, values_from = dif) %>% 
+  left_join(match_df %>% select(fight_pk, fighter, res), by = c("fight_pk", "fighter")) %>% 
+  select(fight_pk, fighter, res, everything())
+```
+
+```{r}
+draw_matches <- match_df %>% 
+  group_by(fight_pk) %>% 
+  summarise(res = sum(res)) %>% 
+  ungroup() %>% 
+  filter(res == 0) %>% 
+  select(fight_pk)
+```
+
+
+# Model Outcome
+```{r}
+model_dif_df <- dif_df %>% 
+  group_by(fight_pk) %>% 
+  sample_n(1) %>% 
+  ungroup() %>% 
+  anti_join(draw_matches, by = "fight_pk") %>% 
+  mutate(res = if_else(res == 1, "Win", "Lose"),
+         res = as.factor(res),
+         res = fct_relevel(res, "Win", "Lose"))
+```
+
+## Data Partition
+```{r}
+set.seed(31)
+
+dif_split <- initial_split(model_dif_df)
+train_dif <- training(dif_split)
+test_dif <- testing(dif_split)
+k_folds_dif <- vfold_cv(train_dif)
+```
+
+## Pre-Processing and Metrics
+```{r}
+dif_rec <- recipe(res~., data = train_dif) %>% 
+  step_rm(fight_pk, fighter) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes())
+
+dif_metrics <- metric_set(accuracy, roc_auc, sens, spec, mn_log_loss)
+
+dif_control <- control_grid(save_pred = TRUE)
+```
+
+## Modeling
+```{r}
+dif_xgboost <- boost_tree(trees = tune(), tree_depth = tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("xgboost")
+
+dif_xgboost_grid <- grid_max_entropy(parameters(dif_xgboost), size = 10)
+```
+
+```{r,eval=FALSE}
+dif_tune <- tune_grid(
+  dif_xgboost,
+  dif_rec,
+  metrics = dif_metrics,
+  control = dif_control,
+  grid = dif_xgboost_grid,
+  resamples = k_folds_dif
+)
+
+dif_tune %>% 
+  autoplot()
+```
+
+
+```{r}
+dif_tune %>% 
+  collect_metrics() %>% 
+  select(trees, tree_depth, .metric, mean) %>% 
+  pivot_wider(names_from = .metric, values_from = mean) %>% 
+  arrange(desc(roc_auc))
+```
+
+```{r}
+dif_tune %>% 
+  collect_predictions() %>% 
+  filter(trees == 35, tree_depth == 2) %>% 
+  conf_mat(truth = res, estimate = .pred_class)
+``` 
+
+```{r}
+dif_model <- workflow() %>% 
+  add_model(dif_xgboost) %>% 
+  add_recipe(dif_rec) %>% 
+  finalize_workflow(dif_tune %>% show_best("roc_auc", n = 1))
+```
+
+```{r}
+dif_eval <- last_fit(dif_model, dif_split)
+
+dif_eval %>% 
+  collect_metrics()
+
+dif_eval %>% 
+  collect_predictions() %>% 
+  conf_mat(truth = res, estimate = .pred_class)
+```
+
+# Model Components
+## Data Partition
+```{r}
+set.seed(31)
+
+ind_split <- initial_split(ind_comp_df)
+train_ind <- training(ind_split)
+test_ind <- testing(ind_split)
+k_folds_ind <- vfold_cv(train_ind)
+```
+
+## Pre-Processing and Metrics
+```{r}
+ind_metrics <- metric_set(rmse, mae, rsq, mape, smape)
+
+kd_rec <- recipe(target_kd ~ ., data = train_ind) %>% 
+  step_rm(fight_pk, fighter,
+          target_sig_strike_attempts, target_strike_attempts, target_strike_landed,
+          target_sub_attempts, target_td_attempts, target_td_landed) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+
+sig_strike_attempts_rec <- recipe(target_sig_strike_attempts ~ ., data = train_ind) %>% 
+  step_rm(fight_pk, fighter,
+          target_kd, target_strike_attempts, target_strike_landed,
+          target_sub_attempts, target_td_attempts, target_td_landed) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+
+strike_attempts_rec <- recipe(target_strike_attempts ~ ., data = train_ind) %>% 
+  step_rm(fight_pk, fighter,
+          target_kd, target_sig_strike_attempts, target_strike_landed,
+          target_sub_attempts, target_td_attempts, target_td_landed) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+
+strike_landed_rec <- recipe(target_strike_landed ~ ., data = train_ind) %>% 
+  step_rm(fight_pk, fighter,
+          target_kd, target_sig_strike_attempts, target_strike_attempts,
+          target_sub_attempts, target_td_attempts, target_td_landed) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+
+sub_attempts_rec <- recipe(target_sub_attempts ~ ., data = train_ind) %>% 
+  step_rm(fight_pk, fighter,
+          target_kd, target_sig_strike_attempts, target_strike_attempts, target_strike_landed,
+          target_td_attempts, target_td_landed) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+
+td_attempts_rec <- recipe(target_td_attempts ~ ., data = train_ind) %>% 
+  step_rm(fight_pk, fighter,
+          target_kd, target_sig_strike_attempts, target_strike_attempts, target_strike_landed,
+          target_sub_attempts, target_td_landed) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+
+td_landed_rec <- recipe(target_td_landed ~ ., data = train_ind) %>% 
+ step_rm(fight_pk, fighter,
+          target_kd, target_sig_strike_attempts, target_strike_attempts, target_strike_landed,
+          target_sub_attempts, target_td_attempts) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_normalize(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE)
+```
+
+## Modeling
+```{r}
+ind_xgboost <- boost_tree(trees = tune(), tree_depth = tune()) %>% 
+  set_mode("regression") %>% 
+  set_engine("xgboost")
+
+ind_xgboost_grid <- grid_max_entropy(parameters(ind_xgboost), size = 10)
+
+ind_randforest <- rand_forest(min_n = tune(), trees = tune()) %>% 
+  set_mode("regression") %>% 
+  set_engine("randomForest")
+
+ind_randforest_grid <- grid_regular(parameters(ind_randforest), filter = c(trees > 1))
+```
+
+```{r,eval=FALSE}
+kd_tune <- tune_grid(
+  ind_xgboost,
+  kd_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+
+sig_strike_attempts_tune <- tune_grid(
+  ind_xgboost,
+  sig_strike_attempts_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+
+strike_attempts_tune <- tune_grid(
+  ind_xgboost,
+  strike_attempts_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+
+strike_landed_tune <- tune_grid(
+  ind_xgboost,
+  strike_landed_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+
+sub_attempts_tune <- tune_grid(
+  ind_xgboost,
+  sub_attempts_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+
+td_attempts_tune <- tune_grid(
+  ind_xgboost,
+  td_attempts_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+
+td_landed_tune <- tune_grid(
+  ind_xgboost,
+  td_landed_rec,
+  metrics = ind_metrics,
+  grid = ind_xgboost_grid,
+  resamples = k_folds_ind
+)
+```
+
+
+
+```{r}
+save(dif_tune, kd_tune, sig_strike_attempts_tune, strike_attempts_tune,
+     strike_landed_tune, sub_attempts_tune, td_attempts_tune, td_landed_tune,
+     file = here("Data/tune_results.RDS"))
+```
+
+
+```{r}
+library(poissonreg)
+
+poisson_model <- poisson_reg(penalty = tune(), mixture = tune()) %>% 
+  set_engine("glmnet")
+
+poisson_grid <- grid_regular(parameters(poisson_model), levels = 5)
+```
+
+
+```{r,eval=FALSE}
+poisson_kd_tune <- tune_grid(
+  poisson_model,
+  kd_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+poisson_sig_strike_attempts_tune <- tune_grid(
+  poisson_model,
+  sig_strike_attempts_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+poisson_strike_attempts_tune <- tune_grid(
+  poisson_model,
+  strike_attempts_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+poisson_strike_landed_tune <- tune_grid(
+  poisson_model,
+  strike_landed_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+poisson_sub_attempts_tune <- tune_grid(
+  poisson_model,
+  sub_attempts_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+poisson_td_attempts_tune <- tune_grid(
+  poisson_model,
+  td_attempts_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+poisson_td_landed_tune <- tune_grid(
+  poisson_model,
+  td_landed_rec,
+  metrics = ind_metrics,
+  grid = poisson_grid,
+  resamples = k_folds_ind
+)
+
+save(poisson_kd_tune, poisson_sig_strike_attempts_tune, poisson_strike_attempts_tune, poisson_strike_landed_tune,
+     poisson_sub_attempts_tune, poisson_td_attempts_tune, poisson_td_landed_tune, file = here("Data/poisson_results.RDS"))
+```
+
+
