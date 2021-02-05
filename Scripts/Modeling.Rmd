@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "UFC Modeling"
 author: "Andrew Couch"
 date: "1/31/2021"
 output: html_document
@@ -12,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(tidymodels)
+library(vip)
+library(poissonreg)
+library(keras)
 library(here)
 
 df <- read_csv(here("Data/fight_data.csv"))
@@ -43,7 +46,7 @@ ind_comp_df <- match_df %>%
   mutate_if(is.numeric, ~replace_na(.x, 0))
 ```
 
-# Differential Data
+# Outcome Model
 ```{r}
 dif_df <- target_components %>% 
   pivot_longer(-c(fight_pk, fighter), values_to = "fighter_val") %>% 
@@ -68,8 +71,7 @@ draw_matches <- match_df %>%
   select(fight_pk)
 ```
 
-
-# Model Outcome
+## Data Partition
 ```{r}
 model_dif_df <- dif_df %>% 
   group_by(fight_pk) %>% 
@@ -78,10 +80,10 @@ model_dif_df <- dif_df %>%
   anti_join(draw_matches, by = "fight_pk") %>% 
   mutate(res = if_else(res == 1, "Win", "Lose"),
          res = as.factor(res),
-         res = fct_relevel(res, "Win", "Lose"))
+         res = fct_relevel(res, "Win", "Lose")) %>% 
+  select(fight_pk, fighter, res, target_kd, target_sig_strike_landed, target_strike_landed, target_sub_attempts, target_td_landed)
 ```
 
-## Data Partition
 ```{r}
 set.seed(31)
 
@@ -121,45 +123,10 @@ dif_tune <- tune_grid(
   resamples = k_folds_dif
 )
 
-dif_tune %>% 
-  autoplot()
+save(dif_tune, file = here("Data/outcome_tune.RDS"))
 ```
 
-
-```{r}
-dif_tune %>% 
-  collect_metrics() %>% 
-  select(trees, tree_depth, .metric, mean) %>% 
-  pivot_wider(names_from = .metric, values_from = mean) %>% 
-  arrange(desc(roc_auc))
-```
-
-```{r}
-dif_tune %>% 
-  collect_predictions() %>% 
-  filter(trees == 35, tree_depth == 2) %>% 
-  conf_mat(truth = res, estimate = .pred_class)
-``` 
-
-```{r}
-dif_model <- workflow() %>% 
-  add_model(dif_xgboost) %>% 
-  add_recipe(dif_rec) %>% 
-  finalize_workflow(dif_tune %>% show_best("roc_auc", n = 1))
-```
-
-```{r}
-dif_eval <- last_fit(dif_model, dif_split)
-
-dif_eval %>% 
-  collect_metrics()
-
-dif_eval %>% 
-  collect_predictions() %>% 
-  conf_mat(truth = res, estimate = .pred_class)
-```
-
-# Model Components
+# Components Model
 ## Data Partition
 ```{r}
 set.seed(31)
@@ -232,18 +199,13 @@ td_landed_rec <- recipe(target_td_landed ~ ., data = train_ind) %>%
 ```
 
 ## Modeling
+### XGBoost
 ```{r}
 ind_xgboost <- boost_tree(trees = tune(), tree_depth = tune()) %>% 
   set_mode("regression") %>% 
   set_engine("xgboost")
 
 ind_xgboost_grid <- grid_max_entropy(parameters(ind_xgboost), size = 10)
-
-ind_randforest <- rand_forest(min_n = tune(), trees = tune()) %>% 
-  set_mode("regression") %>% 
-  set_engine("randomForest")
-
-ind_randforest_grid <- grid_regular(parameters(ind_randforest), filter = c(trees > 1))
 ```
 
 ```{r,eval=FALSE}
@@ -302,20 +264,15 @@ td_landed_tune <- tune_grid(
   grid = ind_xgboost_grid,
   resamples = k_folds_ind
 )
-```
 
-
-
-```{r}
 save(dif_tune, kd_tune, sig_strike_attempts_tune, strike_attempts_tune,
      strike_landed_tune, sub_attempts_tune, td_attempts_tune, td_landed_tune,
      file = here("Data/tune_results.RDS"))
 ```
 
 
+### Poisson
 ```{r}
-library(poissonreg)
-
 poisson_model <- poisson_reg(penalty = tune(), mixture = tune()) %>% 
   set_engine("glmnet")
 
@@ -384,4 +341,148 @@ save(poisson_kd_tune, poisson_sig_strike_attempts_tune, poisson_strike_attempts_
      poisson_sub_attempts_tune, poisson_td_attempts_tune, poisson_td_landed_tune, file = here("Data/poisson_results.RDS"))
 ```
 
+
+
+
+### Neural Network
+```{r}
+train_output <- train_ind %>% select(target_kd, target_sig_strike_landed, target_strike_landed, target_sub_attempts, target_td_landed)
+train_input <- train_ind %>% select_at(vars(!matches("target_|fight_pk|fighter")))
+
+test_output <- test_ind %>% select(target_kd, target_sig_strike_landed, target_strike_landed, target_sub_attempts, target_td_landed)
+test_input <- test_ind %>% select_at(vars(!matches("target_|fight_pk|fighter")))
+
+neural_network_rec <- recipe(~., data = train_input) %>% 
+  step_YeoJohnson(all_numeric()) %>% 
+  step_range(all_numeric()) %>% 
+  step_dummy(all_nominal(), one_hot = TRUE) %>% 
+  prep()
+
+train_input <- bake(neural_network_rec, new_data = train_input) %>% as.matrix()
+test_input <- bake(neural_network_rec, new_data = test_input) %>% as.matrix()
+
+train_output <- as.matrix(train_output)
+test_output <- as.matrix(test_output)
+```
+
+input_model <- layer_input(shape = ncol(train_input), dtype = "int32", name = "fights") %>% 
+  layer_dense(units = 128, activation = "relu") %>% 
+  layer_dense(units = 128, activation = "relu") %>% 
+  layer_dense(units = 128, activation = "relu") 
+
+sig_strike_attempts_pred <- input_model %>% layer_dense(units = 1, name = "sig_strike_attempts")
+sig_strike_landed_pred <- input_model %>% layer_dense(units = 1, name = "sig_strike_landed")
+strike_attempts_pred <- input_model %>% layer_dense(units = 1, name = "strike_attempts")
+strike_landed_pred <- input_model %>% layer_dense(units = 1, name = "strike_landed")
+sub_attempts_pred <- input_model %>% layer_dense(units = 1, name = "sub_attempts")
+td_attempts_pred <- input_model %>% layer_dense(units = 1, name = "td_attempts")
+td_landed_pred <- input_model %>% layer_dense(units = 1, name = "td_landed")
+
+
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_dense(input_shape = ncol(train_input), units = 512, activation = "relu") %>% 
+  layer_dense(units = 512, activation = "relu") %>% 
+  layer_dropout(rate = 0.05) %>% 
+  layer_dense(units = 512, activation = "relu") %>% 
+  layer_dense(units = ncol(train_output))
+
+model %>% 
+  compile(
+    optimizer = optimizer_adam(),
+    loss = "mse",
+    metrics = list("mean_absolute_error"),
+    loss_weights = c(0.13154802, 0.42965849, 0.19235573, 0.14902811, 0.09740966)
+  )
+
+history <- model %>% fit(
+  x = train_input,
+  y = train_output,
+  epochs = 200,
+  validation_split = 0.2,
+  callbacks = callback_early_stopping(patience = 20)
+)
+
+colMeans(abs(predict(model, test_input) - test_output)) 
+```
+
+
+```{r}
+train_output2 <- train_ind %>% 
+  select(fight_pk, fighter, target_kd, target_sig_strike_landed, target_strike_landed, target_sub_attempts, target_td_landed) %>% 
+  left_join(df %>% select(fight_pk, fighter, res), by = c("fight_pk", "fighter")) %>% 
+  select(-fight_pk, -fighter) %>% 
+  mutate(res = if_else(res == "W", 1, 0)) %>% 
+  rename(target_res = res) %>% 
+  as.matrix()
+
+test_output2 <- test_ind %>% 
+  select(fight_pk, fighter, target_kd, target_sig_strike_landed, target_strike_landed, target_sub_attempts, target_td_landed) %>% 
+  left_join(df %>% select(fight_pk, fighter, res), by = c("fight_pk", "fighter")) %>% 
+  select(-fight_pk, -fighter) %>% 
+  mutate(res = if_else(res == "W", 1, 0)) %>% 
+  rename(target_res = res) %>%
+  as.matrix()
+```
+
+
+```{r}
+fight_input <- layer_input(shape = ncol(train_input), dtype = "int32", name = "fights")
+
+base_model <- fight_input %>% 
+  layer_dense(units = 512, activation = "relu") %>% 
+  layer_dense(units = 512, activation = "relu") %>% 
+  layer_dense(units = 512, activation = "relu") 
+
+target_kd <- base_model %>% layer_dense(units = 1, name = "kd")
+target_sig_strike_landed <- base_model %>% layer_dense(units = 1, name = "sig_strike") 
+target_strike_landed <- base_model %>% layer_dense(units = 1, name = "strike")
+target_sub_attempts <- base_model %>% layer_dense(units = 1, name = "sub")
+target_td_landed <- base_model %>% layer_dense(units = 1, name = "td")
+target_res <- base_model %>% layer_dense(units = 1, name = "res", activation = "sigmoid")
+
+model2 <- keras_model(
+  fight_input,
+  list(target_kd, target_sig_strike_landed, target_strike_landed, target_sub_attempts, target_td_landed, target_res)
+)
+```
+
+
+
+```{r}
+model2 %>% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = list(kd = "mse", 
+              sig_strike = "mse", 
+              strike = "mse", 
+              sub = "mse", 
+              td = "mse", 
+              res = "binary_crossentropy"),
+  loss_weights = list(kd = 0.10523842, 
+                      sig_strike = 0.34372679, 
+                      strike = 0.15388458, 
+                      sub = 0.11922249, 
+                      td = 0.07792773, 
+                      res = .2)
+)
+
+model2 %>% 
+  fit(train_input, list(
+    kd = train_output2[, 1],
+    sig_strike = train_output2[, 2],
+    strike = train_output2[, 3],
+    sub = train_output2[, 4],
+    td = train_output2[, 5],
+    res = train_output2[, 6]
+  ),
+  epochs = 500,
+  validation_split = 0.2,
+  callbacks = callback_early_stopping(patience = 20),
+  batch_size = 128)
+```
+
+```{r}
+train_output2[1, ]
+```
 
