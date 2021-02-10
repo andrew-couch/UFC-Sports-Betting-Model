@@ -16,6 +16,7 @@ library(here)
 
 df <- read_csv(here("Data/fight_data.csv"))
 ```
+
 # Create Fight Metrics
 ```{r}
 lag_sum <- function(.x){
@@ -102,7 +103,7 @@ fighter_table <- df %>%
                                          difftime(date, last_fight_date, units = "days") %>% as.numeric())) %>% 
 
   # Remove and reformatting column features
-  select(-round_finished, -rounds, -time, -date, -last_fight_date) %>%
+  select(-rounds, -time, -date, -last_fight_date) %>%
   mutate(across(.cols = c(kd, kds_received, pass, rev, 
                     sig_strike_attempts, sig_strike_landed, 
                     sig_strikes_avoided, sig_strikes_received, 
