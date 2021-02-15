@@ -1,3 +1,11 @@
 .Rproj.user
 .Rhistory
 .Ruserdata
+Data/kd_tune.RDS
+Data/outcome_tune.RDS
+Data/sub_attempts_tune.RDS
+Data/sig_strike_landed_tune.RDS
+Data/td_landed_tune.RDS
+Models/ufc_models.RDS
+Data/tune_results.RDS
+Data/strike_landed_tune.RDS

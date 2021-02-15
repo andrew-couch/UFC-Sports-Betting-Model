@@ -1,0 +1,186 @@
+---
+title: "Model Eval"
+author: "Andrew Couch"
+date: "2/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(tidyposterior)
+library(here)
+```
+
+```{r}
+load(here("Data/kd_tune.RDS"))
+load(here("Data/kd_tune_lasso.RDS"))
+load(here("Data/pca_kd_tune.RDS"))
+load(here("Data/kd_tune_rf.RDS"))
+```
+
+
+```{r}
+map(list(kd_tune, kd_tune_lasso, kd_tune_rf, pca_kd_tune), autoplot)
+map(list(kd_tune, kd_tune_lasso, kd_tune_rf, pca_kd_tune), collect_metrics)
+map(list(kd_tune, kd_tune_lasso, kd_tune_rf, pca_kd_tune), ~show_best(.x, metric = "rmse"))
+```
+
+```{r}
+get_folds <- function(tune){
+  tune %>% 
+    collect_metrics(summarize = FALSE) %>% 
+    inner_join(show_best(tune, "rmse", n = 1)) %>% 
+    filter(.metric == "rmse") %>% 
+    select(id, .estimate)
+}
+
+
+kd_comp <- map_dfc(list(kd_tune, kd_tune_lasso, kd_tune_rf, pca_kd_tune), get_folds) %>% 
+  select(id = 1, "xgboost" = 2, "lasso" = 4, "randomForest" = 6, "pca" = 8)
+
+
+kd_comp <- perf_mod(kd_comp)
+
+contrast_models(kd_comp) 
+
+contrast_models(kd_comp) %>% summary()
+```
+
+
+XGBoost KD
+
+```{r}
+rm(list = ls())
+
+get_folds <- function(tune){
+  tune %>% 
+    collect_metrics(summarize = FALSE) %>% 
+    inner_join(show_best(tune, "rmse", n = 1)) %>% 
+    filter(.metric == "rmse") %>% 
+    select(id, .estimate)
+}
+
+load(here("Data/sig_strike_landed_tune.RDS"))
+load(here("Data/sig_strike_landed_tune_lasso.RDS"))
+load(here("Data/pca_sig_strike_landed_tune.RDS"))
+load(here("Data/sig_strike_landed_tune_rf.RDS"))
+
+
+sig_strike_comp <- map_dfc(list(sig_strike_landed_tune, sig_strike_landed_tune_lasso, sig_strike_landed_tune_rf, pca_sig_strike_landed_tune), get_folds) %>% 
+  select(id = 1, "xgboost" = 2, "lasso" = 4, "randomForest" = 6, "pca" = 8)
+
+
+sig_strike_comp <- perf_mod(sig_strike_comp)
+
+contrast_models(sig_strike_comp) %>% summary()
+```
+
+XGBoost Sig Strike
+
+```{r}
+rm(list = ls())
+
+get_folds <- function(tune){
+  tune %>% 
+    collect_metrics(summarize = FALSE) %>% 
+    inner_join(show_best(tune, "rmse", n = 1)) %>% 
+    filter(.metric == "rmse") %>% 
+    select(id, .estimate)
+}
+
+load(here("Data/strike_landed_tune.RDS"))
+load(here("Data/strike_landed_tune_lasso.RDS"))
+load(here("Data/pca_strike_landed_tune.RDS"))
+load(here("Data/strike_landed_tune_rf.RDS"))
+
+strike_comp <- map_dfc(list(strike_landed_tune, strike_landed_tune_lasso, strike_landed_tune_rf, pca_strike_landed_tune), get_folds) %>% 
+  select(id = 1, "xgboost" = 2, "lasso" = 4, "randomForest" = 6, "pca" = 8)
+
+
+strike_comp <- perf_mod(strike_comp)
+
+contrast_models(strike_comp) %>% summary()
+```
+
+XGBoost Strike
+
+```{r}
+rm(list = ls())
+
+get_folds <- function(tune){
+  tune %>% 
+    collect_metrics(summarize = FALSE) %>% 
+    inner_join(show_best(tune, "rmse", n = 1)) %>% 
+    filter(.metric == "rmse") %>% 
+    select(id, .estimate)
+}
+
+load(here("Data/sub_attempts_tune.RDS"))
+load(here("Data/sub_attempts_tune_lasso.RDS"))
+load(here("Data/pca_sub_attempts_tune.RDS"))
+load(here("Data/sub_attempts_tune_rf.RDS"))
+
+
+sub_comp <- map_dfc(list(sub_attempts_tune, sub_attempts_tune_lasso, sub_attempts_tune_rf, pca_sub_attempts_tune), get_folds) %>% 
+  select(id = 1, "xgboost" = 2, "lasso" = 4, "randomForest" = 6, "pca" = 8)
+
+
+sub_comp <- perf_mod(sub_comp)
+
+contrast_models(sub_comp) %>% summary()
+
+
+sub_attempts_tune_lasso %>% show_best("rmse")
+sub_attempts_tune %>% show_best("rmse")
+```
+
+Lasso Sub
+
+
+```{r}
+rm(list = ls())
+
+get_folds <- function(tune){
+  tune %>% 
+    collect_metrics(summarize = FALSE) %>% 
+    inner_join(show_best(tune, "rmse", n = 1)) %>% 
+    filter(.metric == "rmse") %>% 
+    select(id, .estimate)
+}
+
+load(here("Data/td_landed_tune.RDS"))
+load(here("Data/td_landed_tune_lasso.RDS"))
+load(here("Data/pca_td_landed_tune.RDS"))
+load(here("Data/td_landed_tune_rf.RDS"))
+
+
+td_comp <- map_dfc(list(td_landed_tune, td_landed_tune_lasso, td_landed_tune_rf, pca_td_landed_tune), get_folds) %>% 
+  select(id = 1, "xgboost" = 2, "lasso" = 4, "randomForest" = 6, "pca" = 8)
+
+
+td_comp <- perf_mod(td_comp)
+
+contrast_models(td_comp) %>% summary()
+```
+
+
+
+XGBoost TD
+
+
+
+
+
+
+
+
+
+
+
+
+
