@@ -9,3 +9,4 @@ Data/td_landed_tune.RDS
 Models/ufc_models.RDS
 Data/tune_results.RDS
 Data/strike_landed_tune.RDS
+*.RDS
