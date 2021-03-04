@@ -70,7 +70,7 @@ App
 ##
 ![](Plots/table5.png)<!-- -->  
 
-## Gambline Tables
+## Gambling Tables
 
 ![](Plots/gamble_table1.png)<!-- -->  
 ##
