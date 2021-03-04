@@ -42,8 +42,9 @@ future_cards <- read_html("http://ufcstats.com/statistics/events/upcoming") %>%
                         pivot_wider(names_from = type, values_from = value) %>% 
                         select(-index))) %>% 
   select(card, fights) %>% 
-  unnest(fights) %>% 
-  write_csv(here("Data/future_fights.csv"))
+  unnest(fights)
+
+future_fights %>% write_csv(here("Data/future_fights.csv"))
 ```
 
 
