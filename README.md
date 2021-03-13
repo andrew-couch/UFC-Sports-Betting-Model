@@ -35,15 +35,13 @@ App
 
 ## Card Predictions
 
-![](Plots/card1.png)<!-- -->  
+![](Plots/card_predictions_1.png)<!-- -->  
 ##
-![](Plots/card2.png)<!-- -->  
+![](Plots/card_predictions_2.png)<!-- -->  
 ##
-![](Plots/card3.png)<!-- -->  
+![](Plots/card_predictions_3.png)<!-- -->  
 ##
-![](Plots/card4.png)<!-- -->  
-##
-![](Plots/card5.png)<!-- -->  
+![](Plots/card_predictions_4.png)<!-- -->  
 
 
 ## Card Component Predictions
@@ -55,8 +53,6 @@ App
 ![](Plots/component3.png)<!-- -->  
 ##
 ![](Plots/component4.png)<!-- -->  
-##
-![](Plots/component5.png)<!-- -->  
 
 ## Summary Tables
 
@@ -67,8 +63,6 @@ App
 ![](Plots/table3.png)<!-- -->  
 ##
 ![](Plots/table4.png)<!-- -->  
-##
-![](Plots/table5.png)<!-- -->  
 
 ## Gambling Tables
 
@@ -79,5 +73,3 @@ App
 ![](Plots/gamble_table3.png)<!-- -->  
 ##
 ![](Plots/gamble_table4.png)<!-- -->  
-##
-![](Plots/gamble_table5.png)<!-- -->  
