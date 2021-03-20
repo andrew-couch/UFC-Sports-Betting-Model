@@ -2,9 +2,9 @@ library(shiny)
 library(DT)
 library(plotly)
 library(shinydashboard)
+library(here)
 
-
-load("Final_Model.RDS")
+load(here("Final_Model.RDS"))
 
 outcome_ui <- function(id){
   box(plotlyOutput(NS(id, "outcome_plot")))

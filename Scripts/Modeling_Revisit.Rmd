@@ -1,0 +1,713 @@
+---
+title: "UFC Modeling"
+author: "Andrew Couch"
+date: "1/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(themis)
+library(recipeselectors)
+library(finetune)
+library(here)
+
+df <- read_csv(here("Data/fight_data.csv"))
+match_df <- read_csv(here("Data/fights.csv"))
+fighter_df <- read_csv(here("Data/fighter_table.csv"))
+```
+```{r}
+target_components
+```
+
+
+```{r}
+target_components %>% 
+  colnames() %>% 
+  as_tibble() %>% 
+  filter(str_detect(value, "round_finis"))
+```
+
+
+
+```{r}
+target_components <- fighter_df %>% 
+  left_join(fighter_df %>% rename_all(.funs = ~paste0("opp_", .x)),
+            by = c("fight_pk" = "opp_fight_pk")) %>% 
+  filter(fighter != opp_fighter) %>% 
+  arrange(desc(fight_pk)) %>% 
+  inner_join(df %>% 
+               select(fight_pk, fighter, round_finished,
+                      kd, sig_strike_attempts, sig_strike_landed,
+                      strike_attempts, strike_landed,
+                      sub_attempts, td_attempts, td_landed) %>% 
+               rename_at(vars(!matches("fight_pk|fighter")), ~paste0("target_", .x)) %>% 
+               mutate(across(-c(fight_pk, fighter, target_round_finished), .fns = ~.x / target_round_finished)) %>% 
+               select(-target_round_finished, -target_strike_attempts, -target_sig_strike_attempts, -target_td_attempts),
+             by = c("fight_pk", "fighter")) %>% 
+  select_at(vars(fight_pk, fighter, contains("target"), everything())) %>% 
+  filter((total_wins + total_losses) < 2  & (opp_total_wins + opp_total_losses) < 2) %>% 
+  mutate_all(~replace_na(.x, 0)) %>% 
+  select(-round_finished, -opp_round_finished)
+
+outcome_df <- df %>% select(fight_pk, fighter, res, kd, sig_strike_landed, strike_landed, sub_attempts, td_landed) %>% 
+  left_join(df %>% select(fight_pk, fighter, kd, sig_strike_landed, strike_landed, sub_attempts, td_landed) %>% 
+              rename_all(~paste0("opp_", .x)),
+            by = c("fight_pk" = "opp_fight_pk")) %>% 
+  filter(fighter != opp_fighter) %>% 
+  group_by(fight_pk) %>% 
+  sample_n(1) %>% 
+  ungroup() %>%
+  anti_join(match_df %>% 
+              group_by(fight_pk) %>% 
+              summarise(res = sum(res)) %>% 
+              ungroup() %>% 
+              filter(res == 0) %>% 
+              select(fight_pk) %>% 
+              distinct(),
+            by = "fight_pk") %>% 
+  select(-fight_pk, -fighter, -opp_fighter) %>% 
+  mutate(res = if_else(res == "W", "W", "L"),
+         res = as.factor(res))
+
+outcome_type_df <- df %>% select(fight_pk, fighter, method, res, kd, sig_strike_landed, strike_landed, sub_attempts, td_landed) %>% 
+  left_join(df %>% select(fight_pk, fighter, kd, sig_strike_landed, strike_landed, sub_attempts, td_landed) %>% 
+              rename_all(~paste0("opp_", .x)),
+            by = c("fight_pk" = "opp_fight_pk")) %>% 
+  filter(fighter != opp_fighter) %>% 
+  group_by(fight_pk) %>% 
+  sample_n(1) %>% 
+  ungroup() %>%
+  anti_join(match_df %>% 
+              group_by(fight_pk) %>% 
+              summarise(res = sum(res)) %>% 
+              ungroup() %>% 
+              filter(res == 0) %>% 
+              select(fight_pk) %>% 
+              distinct(),
+            by = "fight_pk") %>% 
+  select(-fight_pk, -fighter, -opp_fighter) %>% 
+  mutate(res = if_else(res == "W", "W", "L"),
+         method = if_else(method == "TKO", "KO/TKO", method)) %>% 
+  filter(method != "DQ") %>% 
+  unite(res, c(method, res), sep = "_") %>% 
+  mutate(res = as.factor(res))
+
+weight_class_outcome_type_df <- df %>% 
+  select(fight_pk, fighter, weight_class, method, res, kd, sig_strike_landed, strike_landed, sub_attempts, td_landed) %>% 
+  left_join(df %>% select(fight_pk, fighter, weight_class, kd, sig_strike_landed, strike_landed, sub_attempts, td_landed) %>% 
+              rename_all(~paste0("opp_", .x)),
+            by = c("fight_pk" = "opp_fight_pk")) %>% 
+  filter(fighter != opp_fighter) %>% 
+  group_by(fight_pk) %>% 
+  sample_n(1) %>% 
+  ungroup() %>%
+  anti_join(match_df %>% 
+              group_by(fight_pk) %>% 
+              summarise(res = sum(res)) %>% 
+              ungroup() %>% 
+              filter(res == 0) %>% 
+              select(fight_pk) %>% 
+              distinct(),
+            by = "fight_pk") %>% 
+  select(-fight_pk, -fighter, -opp_fighter) %>% 
+  mutate(res = if_else(res == "W", "W", "L"),
+         method = if_else(method == "TKO", "KO/TKO", method)) %>% 
+  filter(method != "DQ") %>% 
+  unite(res, c(method, res), sep = "_") %>% 
+  mutate(res = as.factor(res),
+         weight_class = as.factor(weight_class)) %>% 
+  select(-opp_weight_class)
+```
+
+
+
+```{r}
+set.seed(13)
+
+component_split <- initial_split(target_components, prop = 0.75)
+outcome_split <- initial_split(outcome_df, prop = 0.75, strata = res)
+outcome_type_split <- initial_split(outcome_type_df, prop = 0.75, strata = res)
+weight_class_outcome_type_split <- initial_split(weight_class_outcome_type_df, prop = 0.75, strata = res)
+
+component_train <- training(component_split)
+outcome_train <- training(outcome_split)
+outcome_type_train <- training(outcome_type_split)
+weight_class_outcome_type_train <- training(weight_class_outcome_type_split)
+
+component_k_folds <- vfold_cv(component_train)
+outcome_k_folds <- vfold_cv(outcome_train)
+outcome_type_k_folds <- vfold_cv(outcome_type_train)
+weight_class_outcome_type_k_folds <- vfold_cv(weight_class_outcome_type_train)
+```
+
+
+```{r}
+outcome_rec <- recipe(res~., data = outcome_train) %>% 
+  step_mutate(kd_dif = kd - opp_kd,
+              sig_strike_dif = sig_strike_landed - opp_sig_strike_landed,
+              strike_dif = strike_landed - opp_strike_landed,
+              sub_dif = sub_attempts - opp_sub_attempts,
+              td_dif = td_landed - opp_td_landed,
+              kd_advantage = if_else(kd > opp_kd, 1, 0),
+              sig_strike_advantage = if_else(sig_strike_landed > opp_sig_strike_landed, 1, 0),
+              strike_advantage = if_else(strike_landed > opp_strike_landed, 1, 0),
+              sub_advantage = if_else(sub_attempts > opp_sub_attempts, 1, 0),
+              td_advantage = if_else(td_landed > opp_td_landed, 1, 0),
+              component_dif = kd_advantage + sig_strike_advantage + strike_advantage + sub_advantage + td_advantage
+              ) %>% 
+  step_rm(!contains("dif"), -all_outcomes()) %>% 
+  step_YeoJohnson(all_predictors()) 
+
+new_outcome_rec <- recipe(res~., data = outcome_type_train) %>% 
+  step_mutate(kd_dif = kd - opp_kd,
+              sig_strike_dif = sig_strike_landed - opp_sig_strike_landed,
+              strike_dif = strike_landed - opp_strike_landed,
+              sub_dif = sub_attempts - opp_sub_attempts,
+              td_dif = td_landed - opp_td_landed,
+              kd_advantage = if_else(kd > opp_kd, 1, 0),
+              sig_strike_advantage = if_else(sig_strike_landed > opp_sig_strike_landed, 1, 0),
+              strike_advantage = if_else(strike_landed > opp_strike_landed, 1, 0),
+              sub_advantage = if_else(sub_attempts > opp_sub_attempts, 1, 0),
+              td_advantage = if_else(td_landed > opp_td_landed, 1, 0),
+              component_dif = kd_advantage + sig_strike_advantage + strike_advantage + sub_advantage + td_advantage
+              ) %>% 
+  step_rm(!contains("dif"), -all_outcomes()) %>% 
+  #themis::step_bsmote(res) %>% 
+  step_YeoJohnson(all_predictors()) 
+
+new_weight_class_outcome_rec <- recipe(res~., data = weight_class_outcome_type_train) %>% 
+  step_mutate(kd_dif = kd - opp_kd,
+              sig_strike_dif = sig_strike_landed - opp_sig_strike_landed,
+              strike_dif = strike_landed - opp_strike_landed,
+              sub_dif = sub_attempts - opp_sub_attempts,
+              td_dif = td_landed - opp_td_landed,
+              kd_advantage = if_else(kd > opp_kd, 1, 0),
+              sig_strike_advantage = if_else(sig_strike_landed > opp_sig_strike_landed, 1, 0),
+              strike_advantage = if_else(strike_landed > opp_strike_landed, 1, 0),
+              sub_advantage = if_else(sub_attempts > opp_sub_attempts, 1, 0),
+              td_advantage = if_else(td_landed > opp_td_landed, 1, 0),
+              component_dif = kd_advantage + sig_strike_advantage + strike_advantage + sub_advantage + td_advantage
+              ) %>% 
+  step_rm(!matches("dif|weight_class"), -all_outcomes()) %>% 
+  #themis::step_bsmote(res) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(weight_class, one_hot = TRUE)
+```
+
+```{r}
+c_xgboost_model <- boost_tree(trees = tune(), tree_depth = tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("xgboost")
+
+r_xgboost_model <- boost_tree(trees = tune(), tree_depth = tune()) %>% 
+  set_mode("regression") %>% 
+  set_engine("xgboost")
+
+xgboost_grid <- grid_regular(parameters(c_xgboost_model), levels = 5, filter = c(trees > 1))
+```
+
+```{r,eval=FALSE}
+outcome_res <- tune_grid(
+  c_xgboost_model,
+  outcome_rec,
+  grid = xgboost_grid,
+  resamples = outcome_k_folds,
+  control = control_grid(save_pred = TRUE)
+)
+
+outcome_type_res <- tune_grid(
+  c_xgboost_model,
+  new_outcome_rec,
+  grid = xgboost_grid,
+  resamples = outcome_type_k_folds,
+  control = control_grid(save_pred = TRUE)
+)
+
+weight_class_outcome_type_res <- tune_grid(
+  c_xgboost_model,
+  new_weight_class_outcome_rec,
+  grid = xgboost_grid,
+  resamples = weight_class_outcome_type_k_folds,
+  control = control_grid(save_pred = TRUE)
+)
+
+save(outcome_res, outcome_type_res, weight_class_outcome_type_res, file = here("Data/new_outcome_tune.RDS"))
+```
+
+
+```{r}
+load(here("Data/new_outcome_tune.RDS"))
+```
+
+```{r}
+outcome_type_res %>% autoplot()
+
+outcome_type_res %>% show_best("roc_auc")
+```
+
+```{r}
+outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  conf_mat(truth = res, estimate = .pred_class)
+```
+
+```{r}
+outcome_type_res %>% 
+  collect_predictions() %>% 
+  select_at(vars(id, .row, trees, tree_depth, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, trees, tree_depth, res), names_to = "pred") %>% 
+  group_by(id, .row, trees, tree_depth) %>% 
+  slice_max(value, n = 1) %>% 
+  ungroup() %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L"),
+         correct_outcome = if_else(outcome == pred_outcome, 1.5, 1),
+         pred = str_replace(pred, ".pred_", "")) %>% 
+  count(trees, tree_depth, res, pred, wt = correct_outcome) %>% 
+  mutate(correct = if_else(res == pred, n, 0)) %>% 
+  group_by(trees, tree_depth) %>% 
+  summarise(accuracy = sum(correct) / sum(n)) %>% 
+  ungroup() %>% 
+  arrange(desc(accuracy))
+
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  select_at(vars(id, .row, trees, tree_depth, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, trees, tree_depth, res), names_to = "pred") %>% 
+  group_by(id, .row, trees, tree_depth) %>% 
+  slice_max(value, n = 1) %>% 
+  ungroup() %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L"),
+         correct_outcome = if_else(outcome == pred_outcome, 1.5, 1),
+         pred = str_replace(pred, ".pred_", "")) %>% 
+  count(trees, tree_depth, res, pred, wt = correct_outcome) %>% 
+  mutate(correct = if_else(res == pred, n, 0)) %>% 
+  group_by(trees, tree_depth) %>% 
+  summarise(accuracy = sum(correct) / sum(n)) %>% 
+  ungroup() %>% 
+  arrange(desc(accuracy))
+```
+
+
+```{r}
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  select_at(vars(id, .row, trees, tree_depth, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, trees, tree_depth, res), names_to = "pred") %>% 
+  group_by(id, .row, trees, tree_depth) %>% 
+  slice_max(value, n = 1) %>% 
+  ungroup() %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L")) %>% 
+  count(trees, tree_depth, outcome, pred_outcome) %>% 
+  mutate(correct = if_else(outcome == pred_outcome, n, as.integer(0))) %>% 
+  group_by(trees, tree_depth) %>% 
+  summarise(accuracy = sum(correct) / sum(n))
+```
+
+```{r}
+outcome_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500, tree_depth == 1) %>% 
+  count(.pred_class, res) %>% 
+  mutate(correct = if_else(.pred_class == res, n, as.integer(0))) %>% 
+  summarise(accuracy = sum(correct) / sum(n))
+```
+
+```{r}
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select_at(vars(id, .row, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, res), names_to = "pred") %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L")) %>% 
+  group_by(id, .row, outcome, pred_outcome) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = pred_outcome, values_from = value) %>% 
+  mutate(predicted = if_else(L > W, "L", "W") %>% as.factor(),
+         truth = as.factor(outcome)) %>% 
+  roc_auc(truth = truth, L)
+
+weight_class_outcome_type_res %>% 
+  show_best("roc_auc")
+```
+
+```{r}
+outcome_res %>% show_best("roc_auc", n = 1)
+```
+
+
+```{r}
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  conf_mat(truth = res, estimate = .pred_class) %>% 
+  autoplot(type = "heatmap")
+```
+
+
+```{r}
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select_at(vars(id, .row, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, res), names_to = "pred") %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L")) %>% 
+  group_by(id, .row, outcome, pred_outcome) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+  mutate(value = round(value, digits = 2)) %>% 
+  count(value, outcome, pred_outcome) %>% 
+  filter(outcome == "W") %>% 
+  pivot_wider(names_from = pred_outcome, values_from = n, values_fill = 0) %>% 
+  mutate(total = L + W,
+         prop = W / total) %>% 
+  ggplot(aes(x = value, y = prop)) + 
+  geom_abline() + 
+  geom_point() + 
+  coord_obs_pred() 
+
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select_at(vars(id, .row, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, res), names_to = "pred") %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L")) %>% 
+  group_by(id, .row, outcome, pred_outcome) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+  mutate(value = round(value, digits = 2)) %>% 
+  count(value, outcome, pred_outcome) %>% 
+  filter(outcome == "W") %>% 
+  pivot_wider(names_from = pred_outcome, values_from = n, values_fill = 0) %>% 
+  mutate(total = L + W,
+         prop = W / total) %>% 
+  ccc(truth = value, estimate = prop)
+```
+
+```{r}
+weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select_at(vars(id, .row, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, res), names_to = "pred") %>% 
+  group_by(id, .row) %>% 
+  slice_max(value, n = 1) %>% 
+  ungroup() %>% 
+  mutate(pred = str_replace(pred, ".pred_", ""),
+         pred = if_else(res == pred, "Correct", "Incorrect"),
+         value = round(value, digits = 2)) %>% 
+  select(-id, -.row) %>% 
+  count(res, pred, value) %>% 
+  pivot_wider(names_from = pred, values_from = n, values_fill = 0) %>% 
+  filter(str_detect(res, "W")) %>% 
+  mutate(total = Correct + Incorrect,
+         prop = Correct / total) %>% 
+  ggplot(aes(x = value, y = prop, color = res)) + 
+  geom_abline() + 
+  geom_point() + 
+  coord_obs_pred()
+```
+
+
+```{r}
+bind_rows(
+  outcome_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select(.pred_class, res, pred = .pred_W) %>% 
+  mutate(pred = round(pred, digits = 2)) %>% 
+  count(res, pred) %>% 
+  pivot_wider(names_from = res, values_from = n) %>% 
+  mutate(prop = W / (W + L)) %>% 
+  mutate(type = "original"),
+  weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select_at(vars(id, .row, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, res), names_to = "pred") %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L")) %>% 
+  group_by(id, .row, outcome, pred_outcome) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+  mutate(value = round(value, digits = 2)) %>% 
+  count(value, outcome, pred_outcome) %>% 
+  filter(outcome == "W") %>% 
+  pivot_wider(names_from = pred_outcome, values_from = n, values_fill = 0) %>% 
+  mutate(prop = W / (L + W)) %>% 
+  rename(pred = value) %>% 
+  select(-outcome) %>% 
+  mutate(type = "multi_conv")
+) %>% 
+  ggplot(aes(x = pred, y = prop, color = type)) + 
+  geom_abline() + 
+  geom_point() + 
+  coord_obs_pred()
+
+bind_rows(
+  outcome_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select(.pred_class, res, pred = .pred_W) %>% 
+  mutate(pred = round(pred, digits = 2)) %>% 
+  count(res, pred) %>% 
+  pivot_wider(names_from = res, values_from = n) %>% 
+  mutate(prop = W / (W + L)) %>% 
+  mutate(type = "original"),
+  weight_class_outcome_type_res %>% 
+  collect_predictions() %>% 
+  filter(trees == 500 & tree_depth == 1) %>% 
+  select_at(vars(id, .row, matches(".pred"), res)) %>% 
+  select(-.pred_class) %>% 
+  pivot_longer(-c(id, .row, res), names_to = "pred") %>% 
+  mutate(outcome = str_extract(res, "W|L"),
+         pred_outcome = str_extract(pred, "W|L")) %>% 
+  group_by(id, .row, outcome, pred_outcome) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+  mutate(value = round(value, digits = 2)) %>% 
+  count(value, outcome, pred_outcome) %>% 
+  filter(outcome == "W") %>% 
+  pivot_wider(names_from = pred_outcome, values_from = n, values_fill = 0) %>% 
+  mutate(prop = W / (L + W)) %>% 
+  rename(pred = value) %>% 
+  select(-outcome) %>% 
+  mutate(type = "multi_conv")
+) %>% 
+  group_by(type) %>% 
+  ccc(truth = pred, estimate = prop)
+```
+
+
+```{r}
+base_model <- rand_forest(mode = "regression") %>% set_engine("ranger", importance = "permutation")
+
+kd_rec <- recipe(target_kd ~ ., 
+                 data = component_train %>% 
+                   select(-target_sig_strike_landed, -target_strike_landed, -target_sub_attempts, -target_td_landed)) %>% 
+  step_mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
+              elo_dif = elo - opp_elo,
+              fight_dif = num_fights - opp_num_fights,
+              elo_prob = 1 / (1 + 10^((opp_elo - elo)/400)),
+              strike_metric = log((avg_strike_landed + 1 / (avg_strikes_received + 2)))*`win_ko/tko`,
+              opp_strike_metric = log((opp_avg_strike_landed + 1 / (opp_avg_strikes_received + 2)))*`opp_win_ko/tko`,
+              strike_dif = strike_metric - opp_strike_metric,
+              strike_favor = if_else(strike_metric > opp_strike_metric, "favored", "unfavored"),
+              submission_metric = log((avg_td_landed * (win_submission + 1)) + 1) + 
+                log((avg_tds_defended + 1) / (loss_submission + 2)),
+              opp_submission_metric = log((opp_avg_td_landed * (opp_win_submission + 1)) + 1) + 
+                log((opp_avg_tds_defended + 1) / (opp_loss_submission + 2)),
+              sub_dif = submission_metric - opp_submission_metric,
+              sub_favor = if_else(submission_metric > opp_submission_metric, "favored", "unfavored"),
+              sub_favor = as.factor(sub_favor),
+              is_favored = as.factor(is_favored),
+              strike_favor = as.factor(strike_favor)) %>% 
+  step_rm(contains("fight_pk"), contains("fighter"), contains("rev"), contains("weight_class"), 
+          contains("res"), contains("win"), contains("loss")) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE) %>% 
+  step_select_vip(all_predictors(), outcome = "target_kd", model = base_model, threshold = 0.9)
+
+sig_strike_landed_rec <- recipe(target_sig_strike_landed ~ ., 
+                 data = component_train %>% 
+                   select(-target_kd, -target_strike_landed, -target_sub_attempts, -target_td_landed)) %>% 
+  step_mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
+              elo_dif = elo - opp_elo,
+              fight_dif = num_fights - opp_num_fights,
+              elo_prob = 1 / (1 + 10^((opp_elo - elo)/400)),
+              strike_metric = log((avg_strike_landed + 1 / (avg_strikes_received + 2)))*`win_ko/tko`,
+              opp_strike_metric = log((opp_avg_strike_landed + 1 / (opp_avg_strikes_received + 2)))*`opp_win_ko/tko`,
+              strike_dif = strike_metric - opp_strike_metric,
+              strike_favor = if_else(strike_metric > opp_strike_metric, "favored", "unfavored"),
+              submission_metric = log((avg_td_landed * (win_submission + 1)) + 1) + 
+                log((avg_tds_defended + 1) / (loss_submission + 2)),
+              opp_submission_metric = log((opp_avg_td_landed * (opp_win_submission + 1)) + 1) + 
+                log((opp_avg_tds_defended + 1) / (opp_loss_submission + 2)),
+              sub_dif = submission_metric - opp_submission_metric,
+              sub_favor = if_else(submission_metric > opp_submission_metric, "favored", "unfavored"),
+              sub_favor = as.factor(sub_favor),
+              is_favored = as.factor(is_favored),
+              strike_favor = as.factor(strike_favor)) %>% 
+  step_rm(contains("fight_pk"), contains("fighter"), contains("rev"), contains("weight_class"), 
+          contains("res"), contains("win"), contains("loss")) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE) %>% 
+  step_select_vip(all_predictors(), outcome = "target_sig_strike_landed", model = base_model, threshold = 0.9)
+
+strike_landed_rec <- recipe(target_strike_landed ~ ., 
+                 data = component_train %>% 
+                   select(-target_kd, -target_sig_strike_landed, -target_sub_attempts, -target_td_landed)) %>% 
+  step_mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
+              elo_dif = elo - opp_elo,
+              fight_dif = num_fights - opp_num_fights,
+              elo_prob = 1 / (1 + 10^((opp_elo - elo)/400)),
+              strike_metric = log((avg_strike_landed + 1 / (avg_strikes_received + 2)))*`win_ko/tko`,
+              opp_strike_metric = log((opp_avg_strike_landed + 1 / (opp_avg_strikes_received + 2)))*`opp_win_ko/tko`,
+              strike_dif = strike_metric - opp_strike_metric,
+              strike_favor = if_else(strike_metric > opp_strike_metric, "favored", "unfavored"),
+              submission_metric = log((avg_td_landed * (win_submission + 1)) + 1) + 
+                log((avg_tds_defended + 1) / (loss_submission + 2)),
+              opp_submission_metric = log((opp_avg_td_landed * (opp_win_submission + 1)) + 1) + 
+                log((opp_avg_tds_defended + 1) / (opp_loss_submission + 2)),
+              sub_dif = submission_metric - opp_submission_metric,
+              sub_favor = if_else(submission_metric > opp_submission_metric, "favored", "unfavored"),
+              sub_favor = as.factor(sub_favor),
+              is_favored = as.factor(is_favored),
+              strike_favor = as.factor(strike_favor)) %>% 
+  step_rm(contains("fight_pk"), contains("fighter"), contains("rev"), contains("weight_class"), 
+          contains("res"), contains("win"), contains("loss")) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE) %>% 
+  step_select_vip(all_predictors(), outcome = "target_strike_landed", model = base_model, threshold = 0.9)
+
+sub_attempts_rec <- recipe(target_sub_attempts ~ ., 
+                 data = component_train %>% 
+                   select(-target_kd, -target_sig_strike_landed, -target_strike_landed, -target_td_landed)) %>% 
+  step_mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
+              elo_dif = elo - opp_elo,
+              fight_dif = num_fights - opp_num_fights,
+              elo_prob = 1 / (1 + 10^((opp_elo - elo)/400)),
+              strike_metric = log((avg_strike_landed + 1 / (avg_strikes_received + 2)))*`win_ko/tko`,
+              opp_strike_metric = log((opp_avg_strike_landed + 1 / (opp_avg_strikes_received + 2)))*`opp_win_ko/tko`,
+              strike_dif = strike_metric - opp_strike_metric,
+              strike_favor = if_else(strike_metric > opp_strike_metric, "favored", "unfavored"),
+              submission_metric = log((avg_td_landed * (win_submission + 1)) + 1) + 
+                log((avg_tds_defended + 1) / (loss_submission + 2)),
+              opp_submission_metric = log((opp_avg_td_landed * (opp_win_submission + 1)) + 1) + 
+                log((opp_avg_tds_defended + 1) / (opp_loss_submission + 2)),
+              sub_dif = submission_metric - opp_submission_metric,
+              sub_favor = if_else(submission_metric > opp_submission_metric, "favored", "unfavored"),
+              sub_favor = as.factor(sub_favor),
+              is_favored = as.factor(is_favored),
+              strike_favor = as.factor(strike_favor)) %>% 
+  step_rm(contains("fight_pk"), contains("fighter"), contains("rev"), contains("weight_class"), 
+          contains("res"), contains("win"), contains("loss")) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE) %>% 
+  step_select_vip(all_predictors(), outcome = "target_sub_attempts", model = base_model, threshold = 0.9)
+
+td_landed_rec <- recipe(target_td_landed ~ ., 
+                 data = component_train %>% 
+                   select(-target_kd, -target_sig_strike_landed, -target_strike_landed, -target_sub_attempts)) %>% 
+  step_mutate(is_favored = if_else(elo > opp_elo, "favored", "not_favored"),
+              elo_dif = elo - opp_elo,
+              fight_dif = num_fights - opp_num_fights,
+              elo_prob = 1 / (1 + 10^((opp_elo - elo)/400)),
+              strike_metric = log((avg_strike_landed + 1 / (avg_strikes_received + 2)))*`win_ko/tko`,
+              opp_strike_metric = log((opp_avg_strike_landed + 1 / (opp_avg_strikes_received + 2)))*`opp_win_ko/tko`,
+              strike_dif = strike_metric - opp_strike_metric,
+              strike_favor = if_else(strike_metric > opp_strike_metric, "favored", "unfavored"),
+              submission_metric = log((avg_td_landed * (win_submission + 1)) + 1) + 
+                log((avg_tds_defended + 1) / (loss_submission + 2)),
+              opp_submission_metric = log((opp_avg_td_landed * (opp_win_submission + 1)) + 1) + 
+                log((opp_avg_tds_defended + 1) / (opp_loss_submission + 2)),
+              sub_dif = submission_metric - opp_submission_metric,
+              sub_favor = if_else(submission_metric > opp_submission_metric, "favored", "unfavored"),
+              sub_favor = as.factor(sub_favor),
+              is_favored = as.factor(is_favored),
+              strike_favor = as.factor(strike_favor)) %>% 
+  step_rm(contains("fight_pk"), contains("fighter"), contains("rev"), contains("weight_class"), 
+          contains("res"), contains("win"), contains("loss")) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) %>% 
+  step_dummy(all_nominal(), -all_outcomes(), one_hot = TRUE) %>% 
+  step_select_vip(all_predictors(), outcome = "target_td_landed", model = base_model, threshold = 0.9)
+```
+
+
+
+```{r}
+options(tidymodels.dark = TRUE)
+kd_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  kd_rec,
+  iter = 5,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(kd_tune, file = here("Data/kd_tune_rfe.RDS"))
+
+sig_strike_landed_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  sig_strike_landed_rec,
+  iter = 5,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(sig_strike_landed_tune, file = here("Data/sig_strike_landed_tune_rfe.RDS"))
+
+
+strike_landed_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  strike_landed_rec,
+  iter = 5,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(strike_landed_tune, file = here("Data/strike_landed_tune_rfe.RDS"))
+
+sub_attempts_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  sub_attempts_rec,
+  iter = 5,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(sub_attempts_tune, file = here("Data/sub_attempts_tune_rfe.RDS"))
+
+td_landed_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  td_landed_rec,
+  iter = 5,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(td_landed_tune, file = here("Data/td_landed_tune_rfe.RDS"))
+```
+
+```{r}
+kd_tune %>% show_best("rmse", n = 1)
+sig_strike_landed_tune %>% show_best("rmse", n = 1)
+strike_landed_tune %>% show_best("rmse", n = 1)
+sub_attempts_tune %>% show_best("rmse", n = 1)
+td_landed_tune %>% show_best("rmse", n = 1)
+```
+
+
+```{r}
+kd_rec %>% 
+  prep() %>% 
+  juice() %>% 
+  colnames()
+```
+
