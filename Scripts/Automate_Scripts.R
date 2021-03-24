@@ -586,7 +586,6 @@ df %>%
   distinct() %>% 
   mutate(index = row_number(),
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/card_predictions_", index, ".png"),
-         filename = here(filename),
          plot = map2(card, filename, get_fight_prob_plot))
 
 df %>% 
