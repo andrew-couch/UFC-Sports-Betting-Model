@@ -446,7 +446,7 @@ bind_cols(
   select(card, fighter, opponent, fighter_lower, fighter_win, fighter_upper, opponent_lower, opponent_win, opponent_upper, everything()) %>% 
   select(-W1, -W2, -L1, -L2) %>% 
   mutate_if(is.numeric, ~if_else(.x < 0, 0, .x)) %>% 
-  write_csv(here("Data/future_card_predictions.csv"))
+  write_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/future_card_predictions.csv")
 
 
 # README Plots ------------------------------------------------------------
