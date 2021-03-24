@@ -3,12 +3,10 @@ suppressPackageStartupMessages({
   library(tidymodels)
   library(rvest)
   library(progress)
-  library(here)
   library(kableExtra)
   library(ggtext)}
 )
 
-setwd("E:/School/R Work/UFC-Sports-Betting-Model/")
 rm(list = ls())
 
 # # Schedule Automation Script
@@ -207,7 +205,7 @@ scrape_round_data <- function(link){
 }
 
 # Data Scraping -----------------------------------------------------------
-scraped_cards <- read_csv(here("Data/fight_data_raw.csv"))
+scraped_cards <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data_raw.csv")
 
 UFC <- tibble(UFC_Page = "http://ufcstats.com/statistics/events/completed?page=all") %>% 
   # Scrape Fight Card links
@@ -231,7 +229,7 @@ UFC_Data %>%
   mutate(round_finished = as.numeric(round_finished)) %>% 
   distinct() %>% 
   bind_rows(scraped_cards %>% mutate(time = as.character(time))) %>% 
-  write_csv(here("Data/fight_data_raw.csv"))
+  write_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data_raw.csv")
 
 
 # Data Cleaning -----------------------------------------------------------
@@ -239,7 +237,7 @@ message("Cleaning Data")
 rm(list = ls())
 
 
-df <- read_csv(here("Data/fight_data_raw.csv"))
+df <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data_raw.csv")
 
 # Clean head-to-head data
 df <- df %>% 
@@ -351,7 +349,7 @@ fighter_2 <- df %>%
 # Combine fighter 1 and fighter 2 data 
 fight_data <- bind_rows(fighter_1, fighter_2) %>% arrange(desc(fight_pk))
 
-write_csv(fight_data, here("Data/fight_data.csv"))
+write_csv(fight_data,"E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data.csv")
 
 
 # Future Cards ------------------------------------------------------------
@@ -359,8 +357,8 @@ message("Scraping Future Data")
 rm(list = ls())
 
 # Load models and fighter data 
-load(here("Models/Final_Model.RDS"))
-fighter_df <- read_csv(here("Data/fighter_table.csv"))
+load("E:/School/R Work/UFC-Sports-Betting-Model/Models/Final_Model.RDS")
+fighter_df <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fighter_table.csv")
 
 # Scrape future cards and head-to-head matchups
 future_cards <- read_html("http://ufcstats.com/statistics/events/upcoming") %>% 
@@ -456,9 +454,9 @@ message("Creating README Plots")
 rm(list = ls())
 
 
-df <- read_csv(here("Data/future_card_predictions.csv"))
-fights <- read_csv(here("Data/fight_data.csv"))
-elo <- read_csv(here("Data/fighter_table.csv"))
+df <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/future_card_predictions.csv")
+fights <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data.csv")
+elo <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fighter_table.csv")
 
 
 # Plotting functions ------------------------------------------------------
@@ -587,7 +585,7 @@ df %>%
   select(card) %>% 
   distinct() %>% 
   mutate(index = row_number(),
-         filename = paste0("Plots/card_predictions_", index, ".png"),
+         filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/card_predictions_", index, ".png"),
          filename = here(filename),
          plot = map2(card, filename, get_fight_prob_plot))
 
@@ -595,22 +593,19 @@ df %>%
   select(card) %>% 
   distinct() %>% 
   mutate(index = row_number(),
-         filename = paste0("Plots/component", index, ".png"),
-         filename = here(filename),
+         filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/component", index, ".png"),
          plot = map2(card, filename, get_fight_component_plot))
 
 df %>% 
   select(card) %>% 
   distinct() %>% 
   mutate(index = row_number(),
-         filename = paste0("Plots/table", index, ".png"),
-         filename = here(filename),
+         filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/table", index, ".png"),
          plot = map2(card, filename, get_summary_table))
 
 df %>% 
   select(card) %>% 
   distinct() %>% 
   mutate(index = row_number(),
-         filename = paste0("Plots/gamble_table", index, ".png"),
-         filename = here(filename),
+         filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/gamble_table", index, ".png"),
          plot = map2(card, filename, get_betting_table))

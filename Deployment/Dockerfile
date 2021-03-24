@@ -1,21 +1,32 @@
-FROM rocker/shiny:3.5.1 
-RUN apt-get -y install libcurl4-gnutls-dev libxml2-dev libssl-dev; \ 
-rm -r /srv/shiny-server; \ 
-mkdir -p /var/lib/shiny-server/bookmarks/shiny; \ 
-sed -i 's/3838/3838 0.0.0.0/' /etc/shiny-server/shiny-server.conf 
-RUN R -e "install.packages(pkgs=c('shiny','tidyverse','shinydashboard', 'xgboost', 'DT', 'plotly', 'tidymodels', 'ggridges', 'here'), repos='https://cran.rstudio.com/')" 
+# Base image https://hub.docker.com/u/rocker/
+FROM rocker/shiny:latest
 
-COPY app.R /srv/shiny-server/
-COPY modules.R /srv/shiny-server/
-COPY Final_Model.RDS /srv/shiny-server/data
-COPY fight_data.csv /srv/shiny-server/data
-COPY fighter_table.csv /srv/shiny-server/data
-COPY future_card_predictions.csv /srv/shiny-server/data
+# system libraries of general use
+## install debian packages
+RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+    libxml2-dev \
+    libcairo2-dev \
+    libsqlite3-dev \
+    libmariadbd-dev \
+    libpq-dev \
+    libssh2-1-dev \
+    unixodbc-dev \
+    libcurl4-openssl-dev \
+    libssl-dev
+
+## update system libraries
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean
+    
+
+RUN R -e "install.packages(pkgs=c('shiny','tidyverse','shinydashboard', 'xgboost', 'DT', 'plotly', 'tidymodels', 'ggridges', 'tidytext'), repos='https://cran.rstudio.com/')" 
+
+RUN mkdir /root/app
+
+COPY R /root/shiny_save
 
 EXPOSE 3838
 
-RUN chmod -R +rx /srv/shiny-server/ 
-
-USER shiny 
-EXPOSE 3838 
-CMD ["/usr/bin/shiny-server.sh"]
+# RUN dos2unix /usr/bin/shiny-server.sh && apt-get --purge remove -y dos2unix && rm -rf /var/lib/apt/lists/*
+CMD ["R", "-e", "shiny::runApp('/root/shiny_save', host='0.0.0.0', port=3838)"]
