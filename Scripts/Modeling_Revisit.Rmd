@@ -21,17 +21,7 @@ df <- read_csv(here("Data/fight_data.csv"))
 match_df <- read_csv(here("Data/fights.csv"))
 fighter_df <- read_csv(here("Data/fighter_table.csv"))
 ```
-```{r}
-target_components
-```
 
-
-```{r}
-target_components %>% 
-  colnames() %>% 
-  as_tibble() %>% 
-  filter(str_detect(value, "round_finis"))
-```
 
 
 
