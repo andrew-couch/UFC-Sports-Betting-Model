@@ -448,6 +448,28 @@ bind_cols(
   mutate_if(is.numeric, ~if_else(.x < 0, 0, .x)) %>% 
   write_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/future_card_predictions.csv")
 
+bind_cols(
+  predict(outcome_model, bind_cols(fighter_components, opponent_components), type = "prob") %>% rename("L1" = 1, "W1" = 2),
+  predict(outcome_model, bind_cols(fighter_components, opponent_components) %>% 
+            rename_all(~paste0("opp_", .x) %>% 
+                         str_replace_all("opp_opp_", "")), type = "prob") %>% 
+    rename("W2" = 1, "L2" = 2)
+) %>% 
+  bind_cols(fighter_components %>% rename_if(is.numeric, ~paste0("fighter_", .x, "_est"))) %>% 
+  bind_cols(opponent_components %>% rename("opponent" = "fighter") %>% rename_if(is.numeric, ~paste0("opponent_", .x, "_est"))) %>% 
+  mutate(fighter_win = (W1 + W2) / 2,
+         fighter_upper = if_else(W2 > W1, W2, W1),
+         fighter_lower = if_else(W2 > W1, W1, W2),
+         opponent_win = (L1 + L2) / 2,
+         opponent_upper = if_else(L1 > L2, L1, L2),
+         opponent_lower = if_else(L1 > L2, L2, L1)) %>% 
+  bind_cols(future_cards %>% select(card)) %>% 
+  select(card, fighter, opponent, fighter_lower, fighter_win, fighter_upper, opponent_lower, opponent_win, opponent_upper, everything()) %>% 
+  select(-W1, -W2, -L1, -L2) %>% 
+  mutate_if(is.numeric, ~if_else(.x < 0, 0, .x))  %>% 
+  mutate(pred_date = Sys.Date()) %>% 
+  write_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/prediction_history.csv", append = TRUE)
+
 
 # README Plots ------------------------------------------------------------
 message("Creating README Plots")

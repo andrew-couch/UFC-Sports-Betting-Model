@@ -22,9 +22,6 @@ match_df <- read_csv(here("Data/fights.csv"))
 fighter_df <- read_csv(here("Data/fighter_table.csv"))
 ```
 
-
-
-
 ```{r}
 target_components <- fighter_df %>% 
   left_join(fighter_df %>% rename_all(.funs = ~paste0("opp_", .x)),
@@ -626,7 +623,7 @@ td_landed_rec <- recipe(target_td_landed ~ .,
 
 
 
-```{r}
+```{r,eval=FALSE}
 options(tidymodels.dark = TRUE)
 kd_tune <- tune_sim_anneal(
   r_xgboost_model,
@@ -685,6 +682,16 @@ td_landed_tune <- tune_sim_anneal(
 save(td_landed_tune, file = here("Data/td_landed_tune_rfe.RDS"))
 ```
 
+
+```{r}
+load(here("Data/kd_tune_rfe.RDS"))
+load(here("Data/sig_strike_landed_tune_rfe.RDS"))
+load(here("Data/strike_landed_tune_rfe.RDS"))
+load(here("Data/sub_attempts_tune_rfe.RDS"))
+load(here("Data/td_landed_tune_rfe.RDS"))
+```
+
+
 ```{r}
 kd_tune %>% show_best("rmse", n = 1)
 sig_strike_landed_tune %>% show_best("rmse", n = 1)
@@ -695,9 +702,92 @@ td_landed_tune %>% show_best("rmse", n = 1)
 
 
 ```{r}
-kd_rec %>% 
-  prep() %>% 
-  juice() %>% 
-  colnames()
+kd_rec %>% prep() %>% juice() %>% colnames()
+
+final_kd_rec <- recipe(target_kd ~ ., 
+                 data = component_train %>% 
+  select(target_kd, avg_sig_strike_landed, avg_strike_landed, sig_reg_mixture, sig_strike_landed_weighted, sig_strike_attempts_weighted,
+         sig_strike_landed_lag1, sig_strike_landed_weighted, sig_strike_percent, strike_defense, strike_percent, td_percent, total_sig_strike_landed,
+         total_sig_strikes_attempted, opp_avg_strike_landed, opp_sig_reg_mixture, opp_sig_reg_percent, opp_sig_strike_attempts_lag1, 
+         opp_sig_strike_percent, opp_sig_strikes_avoided_weighted, opp_sig_strikes_received_lag1, opp_strike_percent, opp_total_strikes_landed)) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes())
 ```
 
+
+
+
+```{r}
+sig_strike_landed_rec %>% prep() %>% juice() %>% colnames()
+
+final_sig_strike_landed_rec <- recipe(target_sig_strike_landed ~ ., 
+                                data = component_train %>% 
+                                  select(avg_sig_strike_attempts, avg_sig_strike_landed, avg_strike_attempts,              
+                                         avg_strikes_avoided, opp_avg_sig_strikes_received, opp_avg_strikes_avoided,           
+                                         opp_sig_reg_mixture, opp_sig_reg_percent, opp_sig_strike_percent,   
+                                         opp_sig_strikes_received_weighted, opp_strike_percent, opp_total_sig_strike_landed,
+                                         opp_total_sig_strikes_absorbed, sig_reg_mixture, sig_reg_percent, sig_strike_attempts_lag1,
+                                         sig_strike_attempts_weighted, sig_strike_landed_lag1, sig_strike_percent,              
+                                         strike_attempts_weighted, strike_percent, strikes_avoided_lag1, strikes_avoided_weighted,         
+                                         target_sig_strike_landed, total_sig_strikes_attempted, elo, opp_elo)) %>% 
+  step_mutate(elo_dif = elo - opp_elo) %>% 
+  step_rm(elo, opp_elo) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) 
+```
+    
+
+```{r}
+strike_landed_rec %>% prep() %>% juice() %>% colnames()
+
+final_strike_landed_rec <- recipe(target_strike_landed ~ ., 
+                 data = component_train %>% 
+                   select(target_strike_landed, avg_sig_strike_attempts, avg_sig_strikes_received, avg_strike_landed, 
+                          avg_strikes_avoided, sig_reg_mixture, sig_reg_percent, sig_strike_percent, sig_strikes_received_lag1,
+                          strike_attempts_lag1, strike_attempts_weighted, strike_landed_lag1, strike_percent, 
+                          strikes_avoided_lag1, td_percent, total_sig_strikes_absorbed, total_sig_strikes_attempted, 
+                          total_strikes_attempted, opp_sig_reg_mixture, opp_sig_reg_percent, opp_sig_strike_percent, 
+                          opp_strike_percent, opp_strikes_avoided_lag1, opp_td_percent, elo, opp_elo)) %>% 
+  step_mutate(elo_dif = elo - opp_elo,
+              elo_prob = 1 / (1 + 10^((opp_elo - elo)/400))) %>% 
+  step_rm(elo, opp_elo) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes())
+```
+
+
+
+```{r}
+sub_attempts_rec %>% prep() %>% juice() %>% colnames()
+
+final_sub_attempts_rec <- recipe(target_sub_attempts ~ ., 
+                 data = component_train %>% 
+                   select(target_sub_attempts, sig_reg_mixture, sig_reg_percent, sig_strike_attempts_lag1, strike_percent,
+                          td_accuracy, td_attempts_weighted, td_landed_lag1, td_landed_weighted,
+                          opp_avg_strike_attempts, opp_avg_strike_landed, opp_sig_reg_mixture, opp_sig_reg_percent,
+                          opp_sig_strike_attempts_lag1, opp_sig_strike_attempts_weighted, opp_sig_strike_landed_weighted, 
+                          opp_sig_strike_percent, opp_strike_attempts_lag1, opp_strike_attempts_weighted, opp_strike_landed_lag1, 
+                          opp_strike_percent, opp_strikes_avoided_weighted, opp_total_sig_strikes_avoided, 
+                          opp_total_strikes_attempted, opp_total_strikes_landed, 
+                          win_submission, avg_td_landed, avg_tds_defended, loss_submission)) %>% 
+  step_mutate(submission_metric = log((avg_td_landed * (win_submission + 1)) + 1) + 
+                log((avg_tds_defended + 1) / (loss_submission + 2))) %>% 
+  step_rm(win_submission, avg_td_landed, avg_tds_defended, loss_submission) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes())
+```
+
+    
+
+```{r}
+td_landed_rec %>% prep() %>% juice() %>% colnames()
+
+final_td_landed_rec <- recipe(target_td_landed ~ ., 
+                        data = component_train %>% 
+                          select(target_td_landed, avg_strikes_avoided, avg_td_attempts, sig_reg_mixture, sig_reg_percent,                
+                                 sig_strike_percent, strike_landed_lag1, strike_percent, strikes_received_lag1,          
+                                 td_attempts_lag1, td_attempts_weighted, td_percent, total_strikes_absorbed,          
+                                 total_strikes_attempted, total_strikes_landed, total_tds_attempted, opp_avg_sig_strike_landed,      
+                                 opp_avg_strike_attempts, opp_sig_reg_mixture, opp_sig_reg_percent, opp_sig_strike_percent,        
+                                 opp_strike_landed_weighted, opp_strike_percent, opp_td_percent, opp_total_sig_strike_landed,    
+                                 opp_total_sig_strikes_attempted)) %>% 
+  step_YeoJohnson(all_numeric(), -all_outcomes()) 
+```
+
+            
