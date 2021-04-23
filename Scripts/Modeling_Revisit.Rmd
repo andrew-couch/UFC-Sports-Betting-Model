@@ -791,3 +791,62 @@ final_td_landed_rec <- recipe(target_td_landed ~ .,
 ```
 
             
+```{r}
+options(tidymodels.dark = TRUE)
+final_kd_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  final_kd_rec,
+  iter = 25,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(kd_tune, file = here("Data/final_kd_tune_rfe.RDS"))
+
+final_sig_strike_landed_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  final_sig_strike_landed_rec,
+  iter = 25,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(sig_strike_landed_tune, file = here("Data/final_sig_strike_landed_tune_rfe.RDS"))
+
+
+final_strike_landed_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  final_strike_landed_rec,
+  iter = 25,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(strike_landed_tune, file = here("Data/final_strike_landed_tune_rfe.RDS"))
+
+final_sub_attempts_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  final_sub_attempts_rec,
+  iter = 25,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(sub_attempts_tune, file = here("Data/final_sub_attempts_tune_rfe.RDS"))
+
+final_td_landed_tune <- tune_sim_anneal(
+  r_xgboost_model,
+  final_td_landed_rec,
+  iter = 25,
+  metrics = metric_set(rmse),
+  control = control_sim_anneal(verbose = TRUE),
+  resamples = component_k_folds
+)
+
+save(td_landed_tune, file = here("Data/final_td_landed_tune_rfe.RDS"))
+```
+

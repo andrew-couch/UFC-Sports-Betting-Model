@@ -8,14 +8,13 @@ suppressPackageStartupMessages({
 )
 
 rm(list = ls())
-
 # # Schedule Automation Script
 # taskscheduler_create(taskname = "RUN_UFC_Data",
 #                      rscript = "E:/School/R Work/UFC-Sports-Betting-Model/Scripts/Automate_Scripts.R",
 #                      schedule = "WEEKLY",
 #                      starttime = "09:00",
-#                      startdate = "03/15/2021",
-#                      days = "MON")
+#                      startdate = "04/23/2021",
+#                      days = "FRI")
 # 
 # taskscheduler_delete("RUN_UFC_DATA")
 
