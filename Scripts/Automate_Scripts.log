@@ -922,3 +922,584 @@ There were 14 warnings (use warnings() to see them)
 5 UFC Fight Night: Jung v~     5 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
 6 UFC Fight Night: Volkov~     6 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
 7 UFC 264: Poirier vs. Mc~     7 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+Scraping Cards
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+There were 50 or more warnings (use warnings() to see the first 50)
+Cleaning Data
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Warning message:
+`current_vars()` was deprecated in dplyr 0.8.4.
+Please use `tidyselect::peek_vars()` instead.
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_warnings()` to see where this warning was generated. 
+Scraping Future Data
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  fighter = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+There were 15 warnings (use warnings() to see them)
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+Creating README Plots
+
+-- Column specification --------------------------------------------------------
+cols(
+  card = col_character(),
+  fighter = col_character(),
+  opponent = col_character(),
+  fighter_lower = col_double(),
+  fighter_win = col_double(),
+  fighter_upper = col_double(),
+  opponent_lower = col_double(),
+  opponent_win = col_double(),
+  opponent_upper = col_double(),
+  fighter_kd_est = col_double(),
+  fighter_sig_strike_landed_est = col_double(),
+  fighter_strike_landed_est = col_double(),
+  fighter_sub_attempts_est = col_double(),
+  fighter_td_landed_est = col_double(),
+  opponent_opp_kd_est = col_double(),
+  opponent_opp_sig_strike_landed_est = col_double(),
+  opponent_opp_strike_landed_est = col_double(),
+  opponent_opp_sub_attempts_est = col_double(),
+  opponent_opp_td_landed_est = col_double()
+)
+
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  date = col_date(format = ""),
+  fighter = col_character(),
+  method = col_character(),
+  res = col_character(),
+  rev = col_logical(),
+  time = col_time(format = ""),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  fighter = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+# A tibble: 9 x 4
+  card                   index filename                                    plot 
+  <chr>                  <int> <chr>                                       <lis>
+1 UFC 262: Oliveira vs.~     1 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+2 UFC Fight Night: Font~     2 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+3 UFC Fight Night            3 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+4 UFC 263: Adesanya vs.~     4 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+5 UFC Fight Night: Jung~     5 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+6 UFC Fight Night: Volk~     6 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+7 UFC 264: Poirier vs. ~     7 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+8 UFC 265                    8 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+9 UFC 266                    9 E:/School/R Work/UFC-Sports-Betting-Model/~ <gg> 
+There were 36 warnings (use warnings() to see them)
+# A tibble: 9 x 4
+  card                     index filename                                  plot 
+  <chr>                    <int> <chr>                                     <lis>
+1 UFC 262: Oliveira vs. C~     1 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+2 UFC Fight Night: Font v~     2 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+3 UFC Fight Night              3 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+4 UFC 263: Adesanya vs. V~     4 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+5 UFC Fight Night: Jung v~     5 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+6 UFC Fight Night: Volkov~     6 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+7 UFC 264: Poirier vs. Mc~     7 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+8 UFC 265                      8 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+9 UFC 266                      9 E:/School/R Work/UFC-Sports-Betting-Mode~ <gg> 
+# A tibble: 9 x 4
+  card                     index filename                                plot   
+  <chr>                    <int> <chr>                                   <list> 
+1 UFC 262: Oliveira vs. C~     1 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+2 UFC Fight Night: Font v~     2 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+3 UFC Fight Night              3 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+4 UFC 263: Adesanya vs. V~     4 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+5 UFC Fight Night: Jung v~     5 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+6 UFC Fight Night: Volkov~     6 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+7 UFC 264: Poirier vs. Mc~     7 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+8 UFC 265                      8 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+9 UFC 266                      9 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+There were 18 warnings (use warnings() to see them)
+# A tibble: 9 x 4
+  card                    index filename                                 plot   
+  <chr>                   <int> <chr>                                    <list> 
+1 UFC 262: Oliveira vs. ~     1 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+2 UFC Fight Night: Font ~     2 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+3 UFC Fight Night             3 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+4 UFC 263: Adesanya vs. ~     4 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+5 UFC Fight Night: Jung ~     5 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+6 UFC Fight Night: Volko~     6 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+7 UFC 264: Poirier vs. M~     7 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+8 UFC 265                     8 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+9 UFC 266                     9 E:/School/R Work/UFC-Sports-Betting-Mod~ <chr [~
+Scraping Cards
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+There were 50 or more warnings (use warnings() to see the first 50)
+Cleaning Data
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Warning message:
+`current_vars()` was deprecated in dplyr 0.8.4.
+Please use `tidyselect::peek_vars()` instead.
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_warnings()` to see where this warning was generated. 
+Scraping Future Data
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  fighter = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+There were 15 warnings (use warnings() to see them)
+There were 15 warnings (use warnings() to see them)
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+Creating README Plots
+
+-- Column specification --------------------------------------------------------
+cols(
+  card = col_character(),
+  fighter = col_character(),
+  opponent = col_character(),
+  fighter_lower = col_double(),
+  fighter_win = col_double(),
+  fighter_upper = col_double(),
+  opponent_lower = col_double(),
+  opponent_win = col_double(),
+  opponent_upper = col_double(),
+  fighter_kd_est = col_double(),
+  fighter_sig_strike_landed_est = col_double(),
+  fighter_strike_landed_est = col_double(),
+  fighter_sub_attempts_est = col_double(),
+  fighter_td_landed_est = col_double(),
+  opponent_opp_kd_est = col_double(),
+  opponent_opp_sig_strike_landed_est = col_double(),
+  opponent_opp_strike_landed_est = col_double(),
+  opponent_opp_sub_attempts_est = col_double(),
+  opponent_opp_td_landed_est = col_double()
+)
+
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  date = col_date(format = ""),
+  fighter = col_character(),
+  method = col_character(),
+  res = col_character(),
+  rev = col_logical(),
+  time = col_time(format = ""),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  fighter = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+# A tibble: 9 x 4
+  card                    index filename                                   plot 
+  <chr>                   <int> <chr>                                      <lis>
+1 UFC Fight Night: Font ~     1 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+2 UFC Fight Night: Rozen~     2 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+3 UFC 263: Adesanya vs. ~     3 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+4 UFC Fight Night: Jung ~     4 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+5 UFC Fight Night: Volko~     5 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+6 UFC 264: Poirier vs. M~     6 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+7 UFC 265                     7 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+8 UFC Fight Night: Costa~     8 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+9 UFC 266                     9 E:/School/R Work/UFC-Sports-Betting-Model~ <gg> 
+There were 36 warnings (use warnings() to see them)
+# A tibble: 9 x 4
+  card                      index filename                                 plot 
+  <chr>                     <int> <chr>                                    <lis>
+1 UFC Fight Night: Font vs~     1 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+2 UFC Fight Night: Rozenst~     2 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+3 UFC 263: Adesanya vs. Ve~     3 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+4 UFC Fight Night: Jung vs~     4 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+5 UFC Fight Night: Volkov ~     5 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+6 UFC 264: Poirier vs. McG~     6 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+7 UFC 265                       7 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+8 UFC Fight Night: Costa v~     8 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+9 UFC 266                       9 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+# A tibble: 9 x 4
+  card                      index filename                               plot   
+  <chr>                     <int> <chr>                                  <list> 
+1 UFC Fight Night: Font vs~     1 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+2 UFC Fight Night: Rozenst~     2 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+3 UFC 263: Adesanya vs. Ve~     3 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+4 UFC Fight Night: Jung vs~     4 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+5 UFC Fight Night: Volkov ~     5 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+6 UFC 264: Poirier vs. McG~     6 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+7 UFC 265                       7 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+8 UFC Fight Night: Costa v~     8 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+9 UFC 266                       9 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+There were 18 warnings (use warnings() to see them)
+# A tibble: 9 x 4
+  card                     index filename                                plot   
+  <chr>                    <int> <chr>                                   <list> 
+1 UFC Fight Night: Font v~     1 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+2 UFC Fight Night: Rozens~     2 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+3 UFC 263: Adesanya vs. V~     3 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+4 UFC Fight Night: Jung v~     4 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+5 UFC Fight Night: Volkov~     5 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+6 UFC 264: Poirier vs. Mc~     6 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+7 UFC 265                      7 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+8 UFC Fight Night: Costa ~     8 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+9 UFC 266                      9 E:/School/R Work/UFC-Sports-Betting-Mo~ <chr [~
+Warning message:
+package 'progress' was built under R version 4.0.5 
+Scraping Cards
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+There were 50 or more warnings (use warnings() to see the first 50)
+Cleaning Data
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Warning message:
+`current_vars()` was deprecated in dplyr 0.8.4.
+Please use `tidyselect::peek_vars()` instead.
+This warning is displayed once every 8 hours.
+Call `lifecycle::last_warnings()` to see where this warning was generated. 
+Scraping Future Data
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  fighter = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+There were 15 warnings (use warnings() to see them)
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+New names:
+* fighter -> fighter...6
+* fighter -> fighter...12
+Creating README Plots
+
+-- Column specification --------------------------------------------------------
+cols(
+  card = col_character(),
+  fighter = col_character(),
+  opponent = col_character(),
+  fighter_lower = col_double(),
+  fighter_win = col_double(),
+  fighter_upper = col_double(),
+  opponent_lower = col_double(),
+  opponent_win = col_double(),
+  opponent_upper = col_double(),
+  fighter_kd_est = col_double(),
+  fighter_sig_strike_landed_est = col_double(),
+  fighter_strike_landed_est = col_double(),
+  fighter_sub_attempts_est = col_double(),
+  fighter_td_landed_est = col_double(),
+  opponent_opp_kd_est = col_double(),
+  opponent_opp_sig_strike_landed_est = col_double(),
+  opponent_opp_strike_landed_est = col_double(),
+  opponent_opp_sub_attempts_est = col_double(),
+  opponent_opp_td_landed_est = col_double()
+)
+
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  date = col_date(format = ""),
+  fighter = col_character(),
+  method = col_character(),
+  res = col_character(),
+  rev = col_logical(),
+  time = col_time(format = ""),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  fighter = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+Saving 7 x 7 in image
+# A tibble: 10 x 4
+   card                     index filename                                 plot 
+   <chr>                    <int> <chr>                                    <lis>
+ 1 UFC Fight Night: Rozens~     1 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 2 UFC 263: Adesanya vs. V~     2 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 3 UFC Fight Night: Jung v~     3 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 4 UFC Fight Night: Gane v~     4 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 5 UFC 264: Poirier vs. Mc~     5 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 6 UFC Fight Night: Hollow~     6 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 7 UFC Fight Night: Sandha~     7 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 8 UFC 265                      8 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+ 9 UFC Fight Night: Costa ~     9 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+10 UFC 266                     10 E:/School/R Work/UFC-Sports-Betting-Mod~ <gg> 
+There were 40 warnings (use warnings() to see them)
+# A tibble: 10 x 4
+   card                      index filename                                plot 
+   <chr>                     <int> <chr>                                   <lis>
+ 1 UFC Fight Night: Rozenst~     1 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 2 UFC 263: Adesanya vs. Ve~     2 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 3 UFC Fight Night: Jung vs~     3 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 4 UFC Fight Night: Gane vs~     4 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 5 UFC 264: Poirier vs. McG~     5 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 6 UFC Fight Night: Hollowa~     6 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 7 UFC Fight Night: Sandhag~     7 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 8 UFC 265                       8 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+ 9 UFC Fight Night: Costa v~     9 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+10 UFC 266                      10 E:/School/R Work/UFC-Sports-Betting-Mo~ <gg> 
+# A tibble: 10 x 4
+   card                      index filename                              plot   
+   <chr>                     <int> <chr>                                 <list> 
+ 1 UFC Fight Night: Rozenst~     1 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 2 UFC 263: Adesanya vs. Ve~     2 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 3 UFC Fight Night: Jung vs~     3 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 4 UFC Fight Night: Gane vs~     4 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 5 UFC 264: Poirier vs. McG~     5 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 6 UFC Fight Night: Hollowa~     6 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 7 UFC Fight Night: Sandhag~     7 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 8 UFC 265                       8 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+ 9 UFC Fight Night: Costa v~     9 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+10 UFC 266                      10 E:/School/R Work/UFC-Sports-Betting-~ <chr [~
+There were 20 warnings (use warnings() to see them)
+# A tibble: 10 x 4
+   card                     index filename                               plot   
+   <chr>                    <int> <chr>                                  <list> 
+ 1 UFC Fight Night: Rozens~     1 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 2 UFC 263: Adesanya vs. V~     2 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 3 UFC Fight Night: Jung v~     3 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 4 UFC Fight Night: Gane v~     4 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 5 UFC 264: Poirier vs. Mc~     5 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 6 UFC Fight Night: Hollow~     6 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 7 UFC Fight Night: Sandha~     7 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 8 UFC 265                      8 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+ 9 UFC Fight Night: Costa ~     9 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+10 UFC 266                     10 E:/School/R Work/UFC-Sports-Betting-M~ <chr [~
+Warning message:
+package 'progress' was built under R version 4.0.5 
+Scraping Cards
+
+-- Column specification --------------------------------------------------------
+cols(
+  .default = col_double(),
+  UFC_Page = col_character(),
+  cards = col_character(),
+  date = col_character(),
+  fights = col_character(),
+  fighter_1_Fighter = col_character(),
+  fighter_1_Rev = col_logical(),
+  fighter_2_Fighter = col_character(),
+  fighter_2_Rev = col_logical(),
+  method = col_character(),
+  time = col_time(format = ""),
+  time_format = col_character(),
+  referee = col_character(),
+  fighter_1_res = col_character(),
+  fighter_2_res = col_character(),
+  weight_class = col_character()
+)
+i Use `spec()` for the full column specifications.
+
+Error: Input must be list of vectors
+Execution halted
