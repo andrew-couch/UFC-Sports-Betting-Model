@@ -637,4 +637,3 @@ df %>%
 
 system("git add .")
 system(paste0('git commit -m"', df %>% select(card) %>% distinct() %>% pluck(1, 1), '"'))
-system("git push")
