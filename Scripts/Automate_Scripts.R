@@ -638,13 +638,3 @@ df %>%
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/gamble_table", index, ".png"),
          plot = map2(card, filename, get_betting_table))
 
-system(paste0("git commit -a -m '", df %>% 
-                select(card) %>% 
-                distinct() %>% 
-                pluck("card", 1, 1), "'"))
-
-
-config(user.name = "andrew-couch", user.email = "andrew.couch.ia@gmail.com")
-
-git2r::add(path = "E:/School/R Work/UFC-Sports-Betting-Model/")
-git2r::commit()
