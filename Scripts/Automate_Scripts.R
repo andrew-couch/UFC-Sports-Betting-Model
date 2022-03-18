@@ -635,3 +635,6 @@ df %>%
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/gamble_table", index, ".png"),
          plot = map2(card, filename, get_betting_table))
 
+system("git add .")
+system(paste0('git commit -m"', df %>% select(card) %>% distinct() %>% pluck(1, 1), '"'))
+system("git push")
