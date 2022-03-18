@@ -481,7 +481,6 @@ df <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/future_card_predi
 fights <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fight_data.csv")
 elo <- read_csv("E:/School/R Work/UFC-Sports-Betting-Model/Data/fighter_table.csv")
 
-
 # Plotting functions ------------------------------------------------------
 get_fight_prob_plot <- function(card, filename){
   p <- df %>% 
@@ -636,6 +635,3 @@ df %>%
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/gamble_table", index, ".png"),
          plot = map2(card, filename, get_betting_table))
 
-system("git add 'UFC-Sports-Betting-Model/Plots/gamble_table'")
-
-system("git status")
