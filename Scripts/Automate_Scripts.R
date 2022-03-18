@@ -7,8 +7,7 @@ suppressMessages({
     library(kableExtra)
     library(ggtext)
   })
-}
-)
+})
 
 rm(list = ls())
 # # Schedule Automation Script
@@ -637,3 +636,6 @@ df %>%
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/gamble_table", index, ".png"),
          plot = map2(card, filename, get_betting_table))
 
+system("git add 'UFC-Sports-Betting-Model/Plots/gamble_table'")
+
+system("git status")
