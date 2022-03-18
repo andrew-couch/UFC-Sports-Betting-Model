@@ -1,10 +1,14 @@
-suppressPackageStartupMessages({
-  library(tidyverse)
-  library(tidymodels)
-  library(rvest)
-  library(progress)
-  library(kableExtra)
-  library(ggtext)}
+suppressMessages({
+  suppressWarnings({
+    library(tidyverse)
+    library(tidymodels)
+    library(rvest)
+    library(progress)
+    library(kableExtra)
+    library(ggtext)
+    library(git2r)
+  })
+}
 )
 
 rm(list = ls())
@@ -578,7 +582,7 @@ get_summary_table <- function(card, filename){
 
 get_betting_table <- function(card, filename){
   df %>% 
-    filter(card == card) %>% 
+    filter(card == !!card) %>% 
     select(fighter_name = fighter, opponent_name = opponent, fighter_win, opponent_win) %>% 
     mutate(fight = paste0(fighter_name, " vs. ", opponent_name)) %>% 
     mutate_all(as.character) %>% 
@@ -605,6 +609,7 @@ get_betting_table <- function(card, filename){
 df %>% 
   select(card) %>% 
   distinct() %>% 
+  slice(1) %>% 
   mutate(index = row_number(),
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/card_predictions_", index, ".png"),
          plot = map2(card, filename, get_fight_prob_plot))
@@ -612,6 +617,7 @@ df %>%
 df %>% 
   select(card) %>% 
   distinct() %>% 
+  slice(1) %>% 
   mutate(index = row_number(),
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/component", index, ".png"),
          plot = map2(card, filename, get_fight_component_plot))
@@ -619,6 +625,7 @@ df %>%
 df %>% 
   select(card) %>% 
   distinct() %>% 
+  slice(1) %>% 
   mutate(index = row_number(),
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/table", index, ".png"),
          plot = map2(card, filename, get_summary_table))
@@ -626,6 +633,18 @@ df %>%
 df %>% 
   select(card) %>% 
   distinct() %>% 
+  slice(1) %>% 
   mutate(index = row_number(),
          filename = paste0("E:/School/R Work/UFC-Sports-Betting-Model/Plots/gamble_table", index, ".png"),
          plot = map2(card, filename, get_betting_table))
+
+system(paste0("git commit -a -m '", df %>% 
+                select(card) %>% 
+                distinct() %>% 
+                pluck("card", 1, 1), "'"))
+
+
+config(user.name = "andrew-couch", user.email = "andrew.couch.ia@gmail.com")
+
+git2r::add(path = "E:/School/R Work/UFC-Sports-Betting-Model/")
+git2r::commit()
