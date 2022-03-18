@@ -6,7 +6,6 @@ suppressMessages({
     library(progress)
     library(kableExtra)
     library(ggtext)
-    library(git2r)
   })
 }
 )
