@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - uses: r-lib/actions/setup-r@master
-      - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           packages: |
             tidyverse
