@@ -12,9 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - uses: r-lib/actions/setup-r@master
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@v1
         with:
-          packages: |
+          cache-version: 2
+          extra-packages: |
             tidyverse
             rvest
       
