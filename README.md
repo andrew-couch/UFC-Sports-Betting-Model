@@ -32,19 +32,3 @@ App
 
   - `app.R`
   - `modules.RDS`
-
-## Card Predictions
-
-![](Plots/card_predictions_1.png)<!-- -->  
-
-## Card Component Predictions
-
-![](Plots/component1.png)<!-- -->  
-
-## Summary Tables
-
-![](Plots/table1.png)<!-- -->  
-
-## Gambling Tables
-
-![](Plots/gamble_table1.png)<!-- -->  
