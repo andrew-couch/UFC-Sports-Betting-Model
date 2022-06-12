@@ -36,40 +36,15 @@ App
 ## Card Predictions
 
 ![](Plots/card_predictions_1.png)<!-- -->  
-##
-![](Plots/card_predictions_2.png)<!-- -->  
-##
-![](Plots/card_predictions_3.png)<!-- -->  
-##
-![](Plots/card_predictions_4.png)<!-- -->  
-
 
 ## Card Component Predictions
 
 ![](Plots/component1.png)<!-- -->  
-##
-![](Plots/component2.png)<!-- -->  
-##
-![](Plots/component3.png)<!-- -->  
-##
-![](Plots/component4.png)<!-- -->  
 
 ## Summary Tables
 
 ![](Plots/table1.png)<!-- -->  
-##
-![](Plots/table2.png)<!-- -->  
-##
-![](Plots/table3.png)<!-- -->  
-##
-![](Plots/table4.png)<!-- -->  
 
 ## Gambling Tables
 
 ![](Plots/gamble_table1.png)<!-- -->  
-##
-![](Plots/gamble_table2.png)<!-- -->  
-##
-![](Plots/gamble_table3.png)<!-- -->  
-##
-![](Plots/gamble_table4.png)<!-- -->  

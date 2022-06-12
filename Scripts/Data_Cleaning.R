@@ -78,9 +78,7 @@ fighter_1 <- df %>%
          -fighter_2_td_percent,
          -fighter_2_sub_attempts,
          -fighter_2_pass,
-         -fighter_2_rev) %>% 
-  # Sort the columns
-  select(sort(current_vars())) 
+         -fighter_2_rev) 
 
 # Fighter 2 data
 fighter_2 <- df %>% 
@@ -106,9 +104,7 @@ fighter_2 <- df %>%
          -fighter_1_td_percent,
          -fighter_1_sub_attempts,
          -fighter_1_pass,
-         -fighter_1_rev) %>% 
-  # Sort the columns 
-  select(sort(current_vars()))
+         -fighter_1_rev) 
 
 # Combine fighter 1 and fighter 2 data 
 fight_data <- bind_rows(fighter_1, fighter_2) %>% arrange(desc(fight_pk))

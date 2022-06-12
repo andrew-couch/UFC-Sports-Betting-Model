@@ -37,7 +37,6 @@ get_fight_prob_plot <- function(card, filename){
   
   ggsave(filename = filename, plot = p)
   
-  return(p)
 }
 
 get_fight_component_plot <- function(card, filename){
@@ -70,7 +69,6 @@ get_fight_component_plot <- function(card, filename){
   
   ggsave(filename = filename, plot = p, height = 11, width = 8.5, units = "in")
   
-  return(p)
 }
 
 get_summary_table <- function(card, filename){
@@ -101,7 +99,7 @@ get_summary_table <- function(card, filename){
     column_spec(6:10, bold = T, width = "50em") %>% 
     column_spec(3:5, bold = T, width = "25em") %>% 
     column_spec(7, bold = T, width = "75em") %>% 
-    save_kable(file = filename)
+    save_kable(file = filename, keep_tex = TRUE)
 }
 
 get_betting_table <- function(card, filename){
@@ -125,7 +123,7 @@ get_betting_table <- function(card, filename){
     kable(caption = paste0(card)) %>% 
     column_spec(1:2, bold = T, width = "100em") %>% 
     column_spec(3:5, bold = T, width = "10em") %>% 
-    save_kable(file = filename)
+    save_kable(file = filename, keep_tex = TRUE)
 }
 
 
@@ -136,7 +134,7 @@ df %>%
   mutate(index = row_number(),
          filename = paste0("Plots/card_predictions_", index, ".png"),
          filename = here(filename),
-         plot = map2(card, filename, get_fight_prob_plot))
+         plot = walk2(card, filename, get_fight_prob_plot))
 
 df %>% 
   select(card) %>% 
@@ -144,7 +142,7 @@ df %>%
   mutate(index = row_number(),
          filename = paste0("Plots/component", index, ".png"),
          filename = here(filename),
-         plot = map2(card, filename, get_fight_component_plot))
+         plot = walk2(card, filename, get_fight_component_plot))
 
 df %>% 
   select(card) %>% 
@@ -152,7 +150,7 @@ df %>%
   mutate(index = row_number(),
          filename = paste0("Plots/table", index, ".png"),
          filename = here(filename),
-         plot = map2(card, filename, get_summary_table))
+         plot = walk2(card, filename, get_summary_table))
 
 df %>% 
   select(card) %>% 
@@ -160,4 +158,4 @@ df %>%
   mutate(index = row_number(),
          filename = paste0("Plots/gamble_table", index, ".png"),
          filename = here(filename),
-         plot = map2(card, filename, get_betting_table))
+         plot = walk2(card, filename, get_betting_table))

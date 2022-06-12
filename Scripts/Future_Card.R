@@ -17,6 +17,7 @@ future_cards <- read_html("http://ufcstats.com/statistics/events/upcoming") %>%
               html_text() %>% 
               str_trim() %>% 
               str_squish()) %>% 
+  slice(1) %>% 
   mutate(fights = map(future_cards, ~read_html(.x) %>% 
                         html_nodes(".l-page_align_left .b-link_style_black") %>% 
                         html_text() %>% 
